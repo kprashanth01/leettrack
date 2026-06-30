@@ -47,6 +47,9 @@ function RecentProblemsTable({ problems }: RecentProblemsTableProps) {
               <tr key={problem.id}>
                 <td data-label="Problem">
                   <strong>{problem.title}</strong>
+                  {problem.note ? (
+                    <p className="problem-note">{problem.note}</p>
+                  ) : null}
                 </td>
                 <td data-label="Difficulty">
                   <span className={difficultyClassName[problem.difficulty]}>

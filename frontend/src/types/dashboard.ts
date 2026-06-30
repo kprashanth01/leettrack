@@ -15,6 +15,7 @@ export type SolvedProblem = {
   tags: string[];
   status: ProblemStatus;
   solvedAt: string;
+  note?: string;
 };
 
 export type RevisionItem = {
