@@ -47,6 +47,18 @@ Expected response:
 }
 ```
 
+API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Run backend tests from the `backend/` directory:
+
+```bash
+.venv\Scripts\python -m pytest -q
+```
+
 ## Common Issues
 
 If a port is already in use, stop the other server or choose a different port.
