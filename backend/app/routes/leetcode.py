@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.leetcode_client import LeetCodeClientError
 from app.repositories import LeetCodeSubmissionRepository
-from app.schemas import LeetCodeSyncRequest, LeetCodeSyncResponse
+from app.schemas import (
+    LeetCodeSubmissionsResponse,
+    LeetCodeSyncRequest,
+    LeetCodeSyncResponse,
+)
 from app.services import LeetCodeSyncService
 
 router = APIRouter(prefix="/leetcode", tags=["leetcode"])
@@ -12,6 +16,12 @@ router = APIRouter(prefix="/leetcode", tags=["leetcode"])
 
 def get_leetcode_sync_service(db: Session = Depends(get_db)) -> LeetCodeSyncService:
     return LeetCodeSyncService(repository=LeetCodeSubmissionRepository(db))
+
+
+def get_leetcode_submission_repository(
+    db: Session = Depends(get_db),
+) -> LeetCodeSubmissionRepository:
+    return LeetCodeSubmissionRepository(db)
 
 
 @router.post("/sync", response_model=LeetCodeSyncResponse)
@@ -36,4 +46,17 @@ def sync_recent_accepted_submissions(
         fetched_count=result.fetched_count,
         saved_count=result.saved_count,
         submissions=result.submissions,
+    )
+
+
+@router.get("/submissions", response_model=LeetCodeSubmissionsResponse)
+def list_submissions(
+    request: LeetCodeSyncRequest = Depends(),
+    repository: LeetCodeSubmissionRepository = Depends(
+        get_leetcode_submission_repository
+    ),
+) -> LeetCodeSubmissionsResponse:
+    return LeetCodeSubmissionsResponse(
+        username=request.username,
+        submissions=repository.list_submissions(username=request.username),
     )

@@ -22,6 +22,7 @@ The current backend milestone includes:
 - a FastAPI backend shell;
 - a `/health` endpoint;
 - a `POST /leetcode/sync` endpoint that fetches and persists recent accepted LeetCode submissions;
+- a `GET /leetcode/submissions` endpoint used by the dashboard to display persisted submissions;
 - Alembic-managed tables for LeetCode accounts, problems, and submissions;
 - documentation for setup and workflow.
 
@@ -40,6 +41,8 @@ Database schema changes go through Alembic migrations. We do not modify producti
 `problems` stores platform-level problem identity such as `leetcode/two-sum`.
 
 `submissions` links an account to a problem at a specific submission time. A unique constraint on account, problem, and submitted timestamp prevents duplicate rows when sync is run repeatedly.
+
+The frontend dashboard reads from the backend API instead of product-facing mock data. Test fixtures and fake clients remain acceptable inside automated tests.
 
 ## Why This Structure
 

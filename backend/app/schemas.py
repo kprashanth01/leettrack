@@ -52,3 +52,8 @@ class LeetCodeSyncResult(BaseModel):
     fetched_count: int
     saved_count: int
     submissions: list[LeetCodeSubmission]
+
+
+class LeetCodeSubmissionsResponse(BaseModel):
+    username: str
+    submissions: list[LeetCodeSubmission]

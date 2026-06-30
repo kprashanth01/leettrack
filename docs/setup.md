@@ -13,8 +13,11 @@ This guide explains how to run the LeetTrack foundation locally.
 ```bash
 cd frontend
 npm install
+copy .env.example .env.local
 npm run dev
 ```
+
+Set `VITE_API_BASE_URL` in `frontend/.env.local` if your backend is not running on `http://127.0.0.1:8000`.
 
 The Vite dev server prints a local URL, usually:
 

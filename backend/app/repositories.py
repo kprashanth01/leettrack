@@ -39,6 +39,29 @@ class LeetCodeSubmissionRepository:
         self._db.commit()
         return saved_count
 
+    def list_submissions(self, username: str) -> list[LeetCodeSubmission]:
+        rows = self._db.execute(
+            select(Problem, Submission)
+            .join(Submission, Submission.problem_id == Problem.id)
+            .join(
+                LeetCodeAccount,
+                LeetCodeAccount.id == Submission.leetcode_account_id,
+            )
+            .where(LeetCodeAccount.username == username)
+            .order_by(Submission.submitted_at.desc())
+        ).all()
+
+        return [
+            LeetCodeSubmission(
+                title=problem.title,
+                slug=problem.platform_slug,
+                language=submission.language,
+                submitted_at=self._ensure_utc(submission.submitted_at),
+                source="leetcode",
+            )
+            for problem, submission in rows
+        ]
+
     def _get_or_create_account(self, username: str) -> LeetCodeAccount:
         account = self._db.scalar(
             select(LeetCodeAccount).where(LeetCodeAccount.username == username)
@@ -84,3 +107,8 @@ class LeetCodeSubmissionRepository:
             )
         )
         return existing_submission is not None
+
+    def _ensure_utc(self, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
