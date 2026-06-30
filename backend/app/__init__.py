@@ -1,0 +1,1 @@
+"""LeetTrack backend application package."""
