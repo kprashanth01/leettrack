@@ -15,7 +15,21 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Create a local environment file:
+
+```bash
+copy .env.example .env
+```
+
+Set the `SUPABASE_DB_*` values in `.env` from your Supabase Postgres connection details. This is preferred over a single URL because it handles special characters in passwords safely.
+
 ## Run
+
+Apply database migrations before using endpoints that persist data:
+
+```bash
+alembic upgrade head
+```
 
 ```bash
 uvicorn app.main:app --reload
@@ -38,7 +52,7 @@ Expected response:
 
 ## LeetCode Sync
 
-`POST /leetcode/sync` fetches recent accepted submissions for a LeetCode username through LeetCode's GraphQL endpoint.
+`POST /leetcode/sync` fetches recent accepted submissions for a LeetCode username through LeetCode's GraphQL endpoint and saves new submissions to the database.
 
 Example request:
 
@@ -49,9 +63,21 @@ Example request:
 }
 ```
 
-The response includes normalized submission data that later database and dashboard features can reuse.
+The response includes normalized submission data plus `fetched_count` and `saved_count`.
 
-This endpoint does not persist data yet. Database persistence will be introduced in a separate migration-backed feature.
+Repeated syncs are deduplicated by LeetCode account, problem, and submission timestamp.
+
+## Database
+
+The backend reads `DATABASE_URL` when connecting to the database. If `DATABASE_URL` is not set, it uses a local SQLite file named `leettrack.db`.
+
+Supabase PostgreSQL connection strings should be provided through `DATABASE_URL` in local or deployment environment variables.
+
+Schema changes are managed with Alembic migrations:
+
+```bash
+alembic upgrade head
+```
 
 ## API Docs
 

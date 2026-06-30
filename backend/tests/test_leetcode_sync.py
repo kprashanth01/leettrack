@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.leetcode_client import LeetCodeClientError
 from app.main import app
 from app.routes.leetcode import get_leetcode_sync_service
-from app.schemas import LeetCodeSubmission
+from app.schemas import LeetCodeSubmission, LeetCodeSyncResult
 
 
 class FakeSyncService:
@@ -15,10 +15,10 @@ class FakeSyncService:
 
     def sync_recent_accepted_submissions(
         self, username: str, limit: int
-    ) -> list[LeetCodeSubmission]:
+    ) -> LeetCodeSyncResult:
         self.last_username = username
         self.last_limit = limit
-        return [
+        submissions = [
             LeetCodeSubmission(
                 title="Two Sum",
                 slug="two-sum",
@@ -27,12 +27,18 @@ class FakeSyncService:
                 source="leetcode",
             )
         ]
+        return LeetCodeSyncResult(
+            username=username,
+            fetched_count=1,
+            saved_count=1,
+            submissions=submissions,
+        )
 
 
 class FailingSyncService:
     def sync_recent_accepted_submissions(
         self, username: str, limit: int
-    ) -> list[LeetCodeSubmission]:
+    ) -> LeetCodeSyncResult:
         raise LeetCodeClientError("LeetCode is unavailable")
 
 
@@ -54,6 +60,7 @@ def test_sync_endpoint_returns_normalized_recent_accepted_submissions() -> None:
         "status": "completed",
         "username": "kprashanth01",
         "fetched_count": 1,
+        "saved_count": 1,
         "submissions": [
             {
                 "title": "Two Sum",
