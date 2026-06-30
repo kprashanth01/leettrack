@@ -43,4 +43,12 @@ class LeetCodeSyncResponse(BaseModel):
     status: Literal["completed"]
     username: str
     fetched_count: int
+    saved_count: int
+    submissions: list[LeetCodeSubmission]
+
+
+class LeetCodeSyncResult(BaseModel):
+    username: str
+    fetched_count: int
+    saved_count: int
     submissions: list[LeetCodeSubmission]
