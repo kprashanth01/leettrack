@@ -6,13 +6,13 @@ This repository is being built incrementally as a professional full-stack portfo
 
 ## Current Status
 
-The project is in its foundation milestone:
+The project is in its early product foundation:
 
-- `frontend/` contains the React + Vite + TypeScript app shell.
-- `backend/` contains the FastAPI app shell.
+- `frontend/` contains the React + Vite + TypeScript dashboard and Supabase Auth login foundation.
+- `backend/` contains the FastAPI API for syncing and reading LeetCode submissions.
 - `docs/` contains architecture, setup, and workflow documentation.
 
-Product features such as authentication, problem logging, analytics, email reports, browser extension support, and AI coaching will be added in later milestones.
+Product features such as user-owned data isolation, analytics, email reports, browser extension support, and AI coaching will be added in later milestones.
 
 ## Repository Structure
 

@@ -19,6 +19,19 @@ npm run dev
 
 Set `VITE_API_BASE_URL` in `frontend/.env.local` if your backend is not running on `http://127.0.0.1:8000`.
 
+Set these values to enable Supabase GitHub login:
+
+```text
+VITE_SUPABASE_URL=https://[PROJECT_REF].supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=[PUBLISHABLE_KEY]
+```
+
+In Supabase, enable the GitHub auth provider and configure the GitHub OAuth callback URL:
+
+```text
+https://[PROJECT_REF].supabase.co/auth/v1/callback
+```
+
 The Vite dev server prints a local URL, usually:
 
 ```text

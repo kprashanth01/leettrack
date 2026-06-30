@@ -1,3 +1,5 @@
+import AuthPanel from "./AuthPanel";
+
 const navigationItems = ["Dashboard", "Problems", "Notes", "Review"];
 
 function Sidebar() {
@@ -25,6 +27,8 @@ function Sidebar() {
           </a>
         ))}
       </nav>
+
+      <AuthPanel />
     </aside>
   );
 }
