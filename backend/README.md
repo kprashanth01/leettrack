@@ -1,8 +1,11 @@
 # LeetTrack Backend
 
-The backend is a FastAPI application. It will eventually own authentication, problem logs, analytics APIs, email scheduling, and AI-assisted coaching endpoints.
+The backend is a FastAPI application. It owns API contracts, validation, external integrations, and will eventually own authentication, persistence, scheduled jobs, email reports, and AI-assisted coaching endpoints.
 
-For the foundation milestone, it exposes only a health endpoint.
+Current endpoints:
+
+- `GET /health`
+- `POST /leetcode/sync`
 
 ## Setup
 
@@ -33,10 +36,35 @@ Expected response:
 }
 ```
 
+## LeetCode Sync
+
+`POST /leetcode/sync` fetches recent accepted submissions for a LeetCode username through LeetCode's GraphQL endpoint.
+
+Example request:
+
+```json
+{
+  "username": "kprashanth01",
+  "limit": 10
+}
+```
+
+The response includes normalized submission data that later database and dashboard features can reuse.
+
+This endpoint does not persist data yet. Database persistence will be introduced in a separate migration-backed feature.
+
 ## API Docs
 
 FastAPI automatically provides OpenAPI docs at:
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+## Tests
+
+Run backend tests from the `backend/` directory:
+
+```bash
+.venv\Scripts\python -m pytest -q
 ```
