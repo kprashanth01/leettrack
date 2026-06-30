@@ -86,3 +86,24 @@ def test_sync_does_not_duplicate_existing_submissions() -> None:
     assert second_result.fetched_count == 2
     assert second_result.saved_count == 0
     assert len(submissions) == 2
+
+
+def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
+    session = create_test_session()
+    repository = LeetCodeSubmissionRepository(session)
+    repository.save_sync_result(
+        username="kprashanth01",
+        submissions=FakeLeetCodeClient().fetch_recent_accepted_submissions(
+            username="kprashanth01",
+            limit=10,
+        ),
+    )
+
+    saved_submissions = repository.list_submissions(username="kprashanth01")
+
+    assert [submission.title for submission in saved_submissions] == [
+        "Valid Parentheses",
+        "Two Sum",
+    ]
+    assert saved_submissions[0].slug == "valid-parentheses"
+    assert saved_submissions[0].language == "cpp"

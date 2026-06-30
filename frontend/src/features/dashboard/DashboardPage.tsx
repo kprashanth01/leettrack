@@ -1,23 +1,127 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import StatCard from "../../components/StatCard";
 import {
-  dashboardStats,
-  recentProblems,
-  revisionItems,
-} from "../../data/mockDashboardData";
-import type { SolvedProblem } from "../../types/dashboard";
+  fetchLeetCodeSubmissions,
+  syncLeetCodeSubmissions,
+} from "../../api/leetcode";
+import type { DashboardStat, SyncedSubmission } from "../../types/dashboard";
 
-import ProblemLogForm from "./ProblemLogForm";
+import LeetCodeSyncPanel from "./LeetCodeSyncPanel";
 import RecentProblemsTable from "./RecentProblemsTable";
-import RevisionPreview from "./RevisionPreview";
+
+const STORED_USERNAME_KEY = "leettrack.leetcodeUsername";
+
+const formatLatestSubmission = (submissions: SyncedSubmission[]) => {
+  if (submissions.length === 0) {
+    return "No submissions";
+  }
+
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+    new Date(submissions[0].submittedAt),
+  );
+};
+
+const getLanguageCount = (submissions: SyncedSubmission[]) =>
+  new Set(submissions.map((submission) => submission.language)).size;
 
 function DashboardPage() {
-  const [problems, setProblems] = useState<SolvedProblem[]>(recentProblems);
+  const [username, setUsername] = useState(
+    () => window.localStorage.getItem(STORED_USERNAME_KEY) ?? "",
+  );
+  const [submissions, setSubmissions] = useState<SyncedSubmission[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleAddProblem = (problem: SolvedProblem) => {
-    setProblems((currentProblems) => [problem, ...currentProblems]);
+  const dashboardStats: DashboardStat[] = useMemo(
+    () => [
+      {
+        label: "Total synced",
+        value: submissions.length.toString(),
+        helper: "Persisted accepted submissions",
+      },
+      {
+        label: "Languages",
+        value: getLanguageCount(submissions).toString(),
+        helper: "Based on saved submissions",
+      },
+      {
+        label: "Latest submission",
+        value: formatLatestSubmission(submissions),
+        helper: "Newest persisted LeetCode solve",
+      },
+      {
+        label: "Tracked account",
+        value: username || "Not set",
+        helper: "Loaded from real backend data",
+      },
+    ],
+    [submissions, username],
+  );
+
+  const loadSubmissions = async (nextUsername: string) => {
+    const normalizedUsername = nextUsername.trim();
+    if (!normalizedUsername) {
+      setErrorMessage("Enter a LeetCode username.");
+      setStatusMessage("");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    setStatusMessage("");
+
+    try {
+      const savedSubmissions = await fetchLeetCodeSubmissions(normalizedUsername);
+      setUsername(normalizedUsername);
+      setSubmissions(savedSubmissions);
+      window.localStorage.setItem(STORED_USERNAME_KEY, normalizedUsername);
+      setStatusMessage(`Loaded ${savedSubmissions.length} saved submissions.`);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not load submissions.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const syncSubmissions = async (nextUsername: string) => {
+    const normalizedUsername = nextUsername.trim();
+    if (!normalizedUsername) {
+      setErrorMessage("Enter a LeetCode username.");
+      setStatusMessage("");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    setStatusMessage("");
+
+    try {
+      const result = await syncLeetCodeSubmissions(normalizedUsername);
+      const savedSubmissions = await fetchLeetCodeSubmissions(normalizedUsername);
+      setUsername(result.username);
+      setSubmissions(savedSubmissions);
+      window.localStorage.setItem(STORED_USERNAME_KEY, result.username);
+      setStatusMessage(
+        `Fetched ${result.fetchedCount}; saved ${result.savedCount} new submissions.`,
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not sync submissions.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (username) {
+      void loadSubmissions(username);
+    }
+  }, []);
 
   return (
     <div className="dashboard" id="dashboard">
@@ -26,15 +130,19 @@ function DashboardPage() {
           <p className="page-kicker">Dashboard</p>
           <h1>Track your LeetCode progress with intent.</h1>
           <p>
-            Review recent solves, spot revision work, and keep your daily
-            practice loop visible.
+            Sync accepted submissions from LeetCode, persist them in Supabase,
+            and review your real practice history.
           </p>
         </div>
 
-        <aside className="focus-card" aria-label="Today focus">
-          <p>Today&apos;s focus</p>
-          <strong>Revise dynamic programming transitions</strong>
-          <span>Mock recommendation based on recent practice.</span>
+        <aside className="focus-card" aria-label="Sync status">
+          <p>Data source</p>
+          <strong>LeetCode + Supabase</strong>
+          <span>
+            {username
+              ? `Showing persisted submissions for ${username}.`
+              : "Enter a username to load persisted submissions."}
+          </span>
         </aside>
       </header>
 
@@ -44,12 +152,16 @@ function DashboardPage() {
         ))}
       </section>
 
-      <div className="dashboard-grid dashboard-grid-with-form">
-        <ProblemLogForm onAddProblem={handleAddProblem} />
-        <RevisionPreview items={revisionItems} />
-      </div>
+      <LeetCodeSyncPanel
+        initialUsername={username}
+        isLoading={isLoading}
+        statusMessage={statusMessage}
+        errorMessage={errorMessage}
+        onLoadSubmissions={loadSubmissions}
+        onSyncSubmissions={syncSubmissions}
+      />
 
-      <RecentProblemsTable problems={problems} />
+      <RecentProblemsTable submissions={submissions} />
     </div>
   );
 }

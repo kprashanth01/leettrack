@@ -6,6 +6,7 @@ Current endpoints:
 
 - `GET /health`
 - `POST /leetcode/sync`
+- `GET /leetcode/submissions`
 
 ## Setup
 
@@ -66,6 +67,8 @@ Example request:
 The response includes normalized submission data plus `fetched_count` and `saved_count`.
 
 Repeated syncs are deduplicated by LeetCode account, problem, and submission timestamp.
+
+`GET /leetcode/submissions?username=<leetcode_username>` returns saved submissions for a tracked LeetCode username.
 
 ## Database
 
