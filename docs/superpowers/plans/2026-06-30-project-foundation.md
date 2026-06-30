@@ -37,6 +37,7 @@ Create or modify these files:
 - Create: `frontend/src/App.tsx`
 - Create: `frontend/src/main.tsx`
 - Create: `frontend/src/styles.css`
+- Create: `frontend/src/vite-env.d.ts`
 - Create: `backend/README.md`
 - Create: `backend/requirements.txt`
 - Create: `backend/app/__init__.py`
@@ -369,19 +370,19 @@ Create `frontend/package.json`:
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "latest",
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
   }
 }
 ```
@@ -422,7 +423,7 @@ Create `frontend/tsconfig.json`:
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -442,7 +443,7 @@ Create `frontend/tsconfig.node.json`:
   "compilerOptions": {
     "composite": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true
   },
   "include": ["vite.config.ts"]
@@ -604,7 +605,15 @@ li {
 }
 ```
 
-- [ ] **Step 9: Install and verify frontend**
+- [ ] **Step 9: Add Vite asset type declarations**
+
+Create `frontend/src/vite-env.d.ts`:
+
+```ts
+/// <reference types="vite/client" />
+```
+
+- [ ] **Step 10: Install and verify frontend**
 
 Run:
 

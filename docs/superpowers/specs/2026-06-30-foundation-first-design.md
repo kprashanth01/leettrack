@@ -120,7 +120,7 @@ Create the initial LeetTrack monorepo foundation with separate frontend, backend
 - Documentation includes a high-level architecture diagram.
 ```
 
-The local repository currently has no GitHub remote configured. A real issue can be created after the GitHub repository full name is known, for example `owner/leettrack`.
+GitHub Issue #1 was created manually at `https://github.com/kprashanth01/leettrack/issues/1` after the GitHub connector lacked permission to create issues. The local repository remote is configured as `https://github.com/kprashanth01/leettrack.git`.
 
 ## Feature Branch
 
