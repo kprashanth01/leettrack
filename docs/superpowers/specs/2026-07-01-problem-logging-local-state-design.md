@@ -138,10 +138,11 @@ export type SolvedProblem = {
   tags: string[];
   status: ProblemStatus;
   solvedAt: string;
+  note?: string;
 };
 ```
 
-Notes are collected in the form but not persisted into the table yet. This is a deliberate temporary limitation because the current dashboard table type does not model notes. The success message can acknowledge the note was captured locally for the submit interaction, but notes persistence should wait for the later notes/revision feature.
+Notes are optional on a logged problem. When the user enters a note, the new problem should keep that note in local React state and display it under the problem title in the recent problems list. This keeps the form honest: if the UI asks for notes, the local workflow should preserve them.
 
 ## Validation Rules
 
@@ -215,6 +216,7 @@ Edge cases:
 
 - tags with extra spaces should be trimmed;
 - consecutive commas should not create empty tags;
+- duplicate tags should be deduplicated while preserving first occurrence order;
 - a long problem title should wrap without breaking layout;
 - validation should clear after a successful submit.
 

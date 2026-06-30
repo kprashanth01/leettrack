@@ -31,6 +31,8 @@ Create or modify these files:
 
 - Create: `frontend/src/features/dashboard/ProblemLogForm.tsx`
 - Modify: `frontend/src/features/dashboard/DashboardPage.tsx`
+- Modify: `frontend/src/features/dashboard/RecentProblemsTable.tsx`
+- Modify: `frontend/src/types/dashboard.ts`
 - Modify: `frontend/src/styles.css`
 
 No backend files should change. Do not add routing, API, persistence, localStorage, Axios, or TanStack Query.
@@ -80,10 +82,25 @@ Expected: TypeScript and Vite build succeed before feature changes.
 
 **Files:**
 - Create: `frontend/src/features/dashboard/ProblemLogForm.tsx`
+- Modify: `frontend/src/types/dashboard.ts`
 
 - [ ] **Step 1: Create the controlled form component**
 
-Create `frontend/src/features/dashboard/ProblemLogForm.tsx`:
+First update `frontend/src/types/dashboard.ts` so `SolvedProblem` can preserve an optional note:
+
+```ts
+export type SolvedProblem = {
+  id: string;
+  title: string;
+  difficulty: Difficulty;
+  tags: string[];
+  status: ProblemStatus;
+  solvedAt: string;
+  note?: string;
+};
+```
+
+Then create `frontend/src/features/dashboard/ProblemLogForm.tsx`:
 
 ```tsx
 import { FormEvent, useState } from "react";
@@ -116,10 +133,22 @@ function createProblemId(title: string) {
 }
 
 function parseTags(tagsInput: string) {
+  const seenTags = new Set<string>();
+
   return tagsInput
     .split(",")
     .map((tag) => tag.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((tag) => {
+      const normalizedTag = tag.toLowerCase();
+
+      if (seenTags.has(normalizedTag)) {
+        return false;
+      }
+
+      seenTags.add(normalizedTag);
+      return true;
+    });
 }
 
 function ProblemLogForm({ onAddProblem }: ProblemLogFormProps) {
@@ -168,6 +197,7 @@ function ProblemLogForm({ onAddProblem }: ProblemLogFormProps) {
       tags,
       status,
       solvedAt: solvedAt.trim(),
+      note: notes.trim() || undefined,
     };
 
     onAddProblem(problem);
@@ -178,11 +208,7 @@ function ProblemLogForm({ onAddProblem }: ProblemLogFormProps) {
     setSolvedAt("Today");
     setNotes("");
     setErrors({});
-    setSuccessMessage(
-      notes.trim()
-        ? `Logged ${problem.title}. Notes are captured for this local session.`
-        : `Logged ${problem.title}.`,
-    );
+    setSuccessMessage(`Logged ${problem.title}.`);
   }
 
   return (
@@ -195,6 +221,17 @@ function ProblemLogForm({ onAddProblem }: ProblemLogFormProps) {
       </div>
 
       <form className="problem-form" onSubmit={handleSubmit} noValidate>
+        {Object.keys(errors).length > 0 ? (
+          <div className="form-error-summary" role="alert">
+            <strong>Review the highlighted fields.</strong>
+            <ul>
+              {Object.values(errors).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <label className="form-field">
           <span>Problem title</span>
           <input
@@ -317,6 +354,7 @@ Expected: build succeeds with `ProblemLogForm.tsx` present.
 
 **Files:**
 - Modify: `frontend/src/features/dashboard/DashboardPage.tsx`
+- Modify: `frontend/src/features/dashboard/RecentProblemsTable.tsx`
 
 - [ ] **Step 1: Update dashboard composition to own local problem state**
 
@@ -383,6 +421,17 @@ export default DashboardPage;
 ```
 
 - [ ] **Step 2: Verify local state integration compiles**
+
+Update `frontend/src/features/dashboard/RecentProblemsTable.tsx` so optional notes render under the problem title:
+
+```tsx
+<td data-label="Problem">
+  <strong>{problem.title}</strong>
+  {problem.note ? <p className="problem-note">{problem.note}</p> : null}
+</td>
+```
+
+- [ ] **Step 3: Verify local state integration compiles**
 
 Run:
 
@@ -467,6 +516,26 @@ In `frontend/src/styles.css`, add these styles after the `.dashboard-grid` block
   font-weight: 700;
 }
 
+.form-error-summary {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #991b1b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 12px;
+}
+
+.form-error-summary strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.form-error-summary ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
 .primary-action {
   width: fit-content;
   border: 0;
@@ -491,6 +560,15 @@ In `frontend/src/styles.css`, add these styles after the `.dashboard-grid` block
   font-size: 0.88rem;
   font-weight: 800;
   padding: 12px;
+}
+
+.problem-note {
+  max-width: 34rem;
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 ```
 
@@ -631,7 +709,10 @@ Expected changed files:
 ```text
 frontend/src/features/dashboard/DashboardPage.tsx
 frontend/src/features/dashboard/ProblemLogForm.tsx
+frontend/src/features/dashboard/RecentProblemsTable.tsx
+frontend/src/types/dashboard.ts
 frontend/src/styles.css
+docs/superpowers/specs/2026-07-01-problem-logging-local-state-design.md
 docs/superpowers/plans/2026-07-01-problem-logging-local-state.md
 ```
 
@@ -650,7 +731,7 @@ Expected: no matches.
 Run:
 
 ```bash
-git add frontend/src/features/dashboard/DashboardPage.tsx frontend/src/features/dashboard/ProblemLogForm.tsx frontend/src/styles.css docs/superpowers/plans/2026-07-01-problem-logging-local-state.md
+git add frontend/src/features/dashboard/DashboardPage.tsx frontend/src/features/dashboard/ProblemLogForm.tsx frontend/src/features/dashboard/RecentProblemsTable.tsx frontend/src/types/dashboard.ts frontend/src/styles.css docs/superpowers/specs/2026-07-01-problem-logging-local-state-design.md docs/superpowers/plans/2026-07-01-problem-logging-local-state.md
 git commit -m "feat(frontend): add local problem logging form"
 ```
 
@@ -664,6 +745,8 @@ Expected: one implementation commit on `feature/problem-logging-ui`.
 - Submit the empty form and verify validation messages.
 - Submit a valid problem and verify it appears at the top of the list.
 - Submit tags with extra spaces and empty comma segments and verify only non-empty tags render.
+- Submit duplicate tags and verify each tag appears once.
+- Submit a note and verify it appears under the problem title.
 - Resize to mobile width and verify no horizontal page overflow.
 - Confirm no backend server is required.
 
@@ -674,6 +757,7 @@ Expected: one implementation commit on `feature/problem-logging-ui`.
 - Empty solved date label should block submit.
 - Extra spaces around tags should be trimmed.
 - Consecutive commas should not create empty tag pills.
+- Duplicate tags should only render once.
 - Long problem titles should wrap instead of overflowing.
 
 ## Future Improvements
@@ -681,11 +765,11 @@ Expected: one implementation commit on `feature/problem-logging-ui`.
 - Persist locally logged problems with a backend API and database.
 - Add search and filters for the problem list.
 - Add edit/delete actions for locally logged problems.
-- Model notes as first-class data in a later notes/revision milestone.
+- Expand notes into a dedicated notes/revision workflow when backend persistence exists.
 
 ## Plan Self-Review
 
-- Spec coverage: Tasks cover inline form, controlled inputs, local state, validation, immediate list update, form reset, styling, and verification.
+- Spec coverage: Tasks cover inline form, controlled inputs, local state, validation, notes preservation, immediate list update, form reset, styling, and verification.
 - Placeholder scan: No unfinished implementation placeholders remain.
 - Type consistency: The form emits the existing `SolvedProblem` shape consumed by `RecentProblemsTable`.
 - Scope check: Backend calls, localStorage, database, auth, router, Axios, TanStack Query, search/filter behavior, edit/delete actions, scheduler logic, and AI remain out of scope.
