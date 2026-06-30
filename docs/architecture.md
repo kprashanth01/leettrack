@@ -5,6 +5,7 @@ LeetTrack is organized as a monorepo with independent frontend and backend appli
 ```mermaid
 flowchart LR
   User["User"] --> Frontend["frontend/ React + Vite"]
+  Frontend --> Auth["Supabase Auth GitHub OAuth"]
   Frontend --> Backend["backend/ FastAPI"]
   Backend --> LeetCode["LeetCode GraphQL"]
   Backend --> Database["PostgreSQL via SQLAlchemy/Alembic"]
@@ -19,6 +20,7 @@ flowchart LR
 The current backend milestone includes:
 
 - a React + Vite frontend shell;
+- Supabase Auth frontend session handling with GitHub login;
 - a FastAPI backend shell;
 - a `/health` endpoint;
 - a `POST /leetcode/sync` endpoint that fetches and persists recent accepted LeetCode submissions;
@@ -29,6 +31,8 @@ The current backend milestone includes:
 ## Boundaries
 
 The frontend owns presentation, routing, UI state, and API calls.
+
+The frontend also owns the Supabase browser session. When a user is signed in, frontend API calls attach the Supabase access token as a bearer token. Backend route protection and user-owned database rows will be introduced in a later auth-hardening milestone.
 
 The backend owns API contracts, validation, authentication, persistence, scheduled jobs, and external integrations. LeetCode communication is isolated behind a client/service boundary so the rest of the application does not depend directly on LeetCode's GraphQL response shape.
 

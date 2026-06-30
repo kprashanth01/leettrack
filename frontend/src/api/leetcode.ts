@@ -1,4 +1,5 @@
 import type { SyncedSubmission } from "../types/dashboard";
+import { getCurrentAccessToken } from "../lib/supabase";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
@@ -53,13 +54,28 @@ const readErrorMessage = async (response: Response) => {
   return "LeetTrack could not complete the request.";
 };
 
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const token = await getCurrentAccessToken();
+
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 export async function syncLeetCodeSubmissions(
   username: string,
   limit = 20,
 ): Promise<SyncResult> {
   const response = await fetch(`${API_BASE_URL}/leetcode/sync`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(await getAuthHeaders()),
+    },
     body: JSON.stringify({ username, limit }),
   });
 
@@ -80,7 +96,9 @@ export async function fetchLeetCodeSubmissions(
   username: string,
 ): Promise<SyncedSubmission[]> {
   const params = new URLSearchParams({ username });
-  const response = await fetch(`${API_BASE_URL}/leetcode/submissions?${params}`);
+  const response = await fetch(`${API_BASE_URL}/leetcode/submissions?${params}`, {
+    headers: await getAuthHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));
