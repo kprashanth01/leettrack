@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LeetTrack</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="popup-header">
+        <span class="brand-mark" aria-hidden="true">LT</span>
+        <div>
+          <p class="brand-name">LeetTrack</p>
+          <p class="brand-caption">LeetCode detector</p>
+        </div>
+      </header>
+
+      <section class="status-card" aria-live="polite">
+        <p class="section-kicker">Current tab</p>
+        <h1 id="problem-title">Checking page...</h1>
+        <p id="problem-detail">
+          Open a LeetCode problem page to detect its slug and title.
+        </p>
+      </section>
+
+      <div class="problem-meta" id="problem-meta" hidden>
+        <span id="problem-slug"></span>
+      </div>
+
+      <p class="footer-note">
+        Auto-save and account linking will come after this detection foundation.
+      </p>
+    </main>
+
+    <script src="./popup.js"></script>
+  </body>
+</html>

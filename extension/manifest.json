@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "LeetTrack",
+  "description": "Detect the active LeetCode problem so LeetTrack can connect browser context to your tracker.",
+  "version": "0.1.0",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "LeetTrack"
+  },
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/problems/*",
+        "https://*.leetcode.com/problems/*"
+      ],
+      "js": ["src/problemPage.js", "src/contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

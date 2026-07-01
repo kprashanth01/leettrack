@@ -10,9 +10,10 @@ The project is in its early product foundation:
 
 - `frontend/` contains the React + Vite + TypeScript dashboard and Supabase Auth login foundation.
 - `backend/` contains the FastAPI API for syncing and reading LeetCode submissions.
+- `extension/` contains the Manifest V3 browser extension foundation for detecting LeetCode problem pages.
 - `docs/` contains architecture, setup, and workflow documentation.
 
-Product features such as user-owned data isolation, analytics, email reports, browser extension support, and AI coaching will be added in later milestones.
+Product features such as email reports, deeper browser extension sync, and AI coaching will be added in later milestones.
 
 ## Repository Structure
 
@@ -20,6 +21,7 @@ Product features such as user-owned data isolation, analytics, email reports, br
 leettrack/
   frontend/   React + Vite + TypeScript application
   backend/    FastAPI application
+  extension/  Manifest V3 browser extension
   docs/       Architecture, setup, and development workflow notes
 ```
 
