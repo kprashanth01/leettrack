@@ -545,6 +545,54 @@ h1 {
   overflow-x: auto;
 }
 
+.table-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(140px, 170px);
+  gap: 14px;
+  border-bottom: 1px solid #e4eaf3;
+  padding: 16px 20px;
+}
+
+.table-search,
+.table-control {
+  display: grid;
+  gap: 7px;
+}
+
+.table-search span,
+.table-control span {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.table-search input,
+.table-control select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172033;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+}
+
+.table-search input:focus,
+.table-control select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.14);
+  outline: none;
+}
+
+.table-search input:disabled,
+.table-control select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -718,6 +766,10 @@ tbody tr:last-child td {
 
   .dashboard-header,
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-controls {
     grid-template-columns: 1fr;
   }
 
