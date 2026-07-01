@@ -274,10 +274,12 @@ class TrackedProblemRepository:
         problem_slug: str,
         problem_title: str,
         source: str = "extension",
+        metadata: LeetCodeProblemMetadata | None = None,
     ) -> TrackedProblemSaveResponse:
         problem = self._get_or_create_problem(
             problem_slug=problem_slug,
             problem_title=problem_title,
+            metadata=metadata,
         )
         existing = self._db.scalar(
             select(TrackedProblem).where(
@@ -304,7 +306,12 @@ class TrackedProblemRepository:
             problem=self._to_response(tracked_problem),
         )
 
-    def _get_or_create_problem(self, problem_slug: str, problem_title: str) -> Problem:
+    def _get_or_create_problem(
+        self,
+        problem_slug: str,
+        problem_title: str,
+        metadata: LeetCodeProblemMetadata | None,
+    ) -> Problem:
         problem = self._db.scalar(
             select(Problem).where(
                 Problem.platform == "leetcode",
@@ -314,18 +321,30 @@ class TrackedProblemRepository:
         if problem is not None:
             if not problem.title:
                 problem.title = problem_title
+            self._apply_metadata(problem=problem, metadata=metadata)
             return problem
 
         problem = Problem(
             platform="leetcode",
             platform_slug=problem_slug,
             title=problem_title,
-            difficulty=None,
-            topic_tags=[],
+            difficulty=metadata.difficulty if metadata else None,
+            topic_tags=metadata.topic_tags if metadata else [],
         )
         self._db.add(problem)
         self._db.flush()
         return problem
+
+    def _apply_metadata(
+        self,
+        problem: Problem,
+        metadata: LeetCodeProblemMetadata | None,
+    ) -> None:
+        if metadata is None:
+            return
+
+        problem.difficulty = metadata.difficulty
+        problem.topic_tags = metadata.topic_tags
 
     def _to_response(self, tracked_problem: TrackedProblem) -> TrackedProblemResponse:
         return TrackedProblemResponse(

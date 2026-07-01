@@ -5,8 +5,25 @@ from sqlalchemy.pool import StaticPool
 
 from app.auth import CurrentUser, get_current_user
 from app.database import get_db
+from app.leetcode_client import LeetCodeClientError
 from app.main import app
 from app.models import Base
+from app.routes.problems import get_problem_metadata_client
+from app.schemas import LeetCodeProblemMetadata
+
+
+class FakeMetadataClient:
+    def fetch_problem_metadata(self, slug: str) -> LeetCodeProblemMetadata | None:
+        return LeetCodeProblemMetadata(
+            slug=slug,
+            difficulty="Medium",
+            topic_tags=["Linked List", "Math", "Recursion"],
+        )
+
+
+class FailingMetadataClient:
+    def fetch_problem_metadata(self, slug: str) -> LeetCodeProblemMetadata | None:
+        raise LeetCodeClientError("metadata unavailable")
 
 
 def override_db_session(session: Session):
@@ -55,6 +72,67 @@ def test_tracked_problems_endpoint_saves_and_lists_extension_problem() -> None:
     assert list_response.status_code == 200
     assert len(list_response.json()["problems"]) == 1
     assert list_response.json()["problems"][0]["problem_slug"] == "two-sum"
+
+
+def test_tracked_problems_endpoint_enriches_saved_problem_with_metadata() -> None:
+    session = create_test_session()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+    app.dependency_overrides[get_problem_metadata_client] = lambda: FakeMetadataClient()
+
+    try:
+        client = TestClient(app)
+        create_response = client.post(
+            "/problems/tracked",
+            json={
+                "problem_slug": "add-two-numbers",
+                "problem_title": "Add Two Numbers",
+                "source": "extension",
+            },
+        )
+        list_response = client.get("/problems/tracked")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert create_response.status_code == 201
+    assert create_response.json()["problem"]["difficulty"] == "Medium"
+    assert create_response.json()["problem"]["topic_tags"] == [
+        "Linked List",
+        "Math",
+        "Recursion",
+    ]
+    assert list_response.json()["problems"][0]["difficulty"] == "Medium"
+
+
+def test_tracked_problems_endpoint_saves_when_metadata_fetch_fails() -> None:
+    session = create_test_session()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+    app.dependency_overrides[get_problem_metadata_client] = lambda: FailingMetadataClient()
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/problems/tracked",
+            json={
+                "problem_slug": "add-two-numbers",
+                "problem_title": "Add Two Numbers",
+                "source": "extension",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    assert response.json()["problem"]["problem_slug"] == "add-two-numbers"
+    assert response.json()["problem"]["difficulty"] is None
+    assert response.json()["problem"]["topic_tags"] == []
 
 
 def test_tracked_problems_endpoint_is_idempotent_for_duplicate_save() -> None:
