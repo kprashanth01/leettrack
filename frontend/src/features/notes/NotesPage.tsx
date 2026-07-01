@@ -99,20 +99,20 @@ function NotesPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const problemCount = problems.length;
   const selectedProblem = problems.find((problem) => problem.slug === selectedSlug);
+  const showSelectedProblemFallback = Boolean(selectedSlug && !selectedProblem);
   const editingNote = notes.find((note) => note.id === editingNoteId);
 
   useEffect(() => {
-    const requestedProblemExists = problems.some(
-      (problem) => problem.slug === requestedProblemSlug,
-    );
-
     if (
       requestedProblemSlug &&
-      requestedProblemExists &&
       appliedRequestedProblemRef.current !== requestedProblemSlug
     ) {
       appliedRequestedProblemRef.current = requestedProblemSlug;
       setSelectedSlug(requestedProblemSlug);
+      return;
+    }
+
+    if (requestedProblemSlug) {
       return;
     }
 
@@ -279,6 +279,9 @@ function NotesPage() {
                   onChange={(event) => setSelectedSlug(event.target.value)}
                   disabled={isSaving || editingNoteId !== null}
                 >
+                  {showSelectedProblemFallback ? (
+                    <option value={selectedSlug}>{selectedSlug}</option>
+                  ) : null}
                   {problems.map((problem) => (
                     <option key={problem.slug} value={problem.slug}>
                       {problem.title}
