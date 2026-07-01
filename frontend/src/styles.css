@@ -1621,6 +1621,33 @@ tbody tr:last-child td {
   font-weight: 700;
 }
 
+.extension-context-panel {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  border-color: rgb(34 197 94 / 0.24);
+  background:
+    linear-gradient(135deg, rgb(34 197 94 / 0.12), transparent 58%),
+    #242424;
+}
+
+.extension-context-panel h2 {
+  margin: 6px 0;
+  color: #ffffff;
+  font-size: clamp(1.35rem, 3vw, 2.2rem);
+  line-height: 1.15;
+}
+
+.extension-context-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 @media (max-width: 960px) {
   .notes-layout {
     grid-template-columns: 1fr;
@@ -1635,5 +1662,13 @@ tbody tr:last-child td {
   .note-card-header,
   .note-card-footer {
     display: grid;
+  }
+
+  .extension-context-panel {
+    display: grid;
+  }
+
+  .extension-context-actions {
+    justify-content: flex-start;
   }
 }
