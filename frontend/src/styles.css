@@ -569,6 +569,19 @@ h1 {
   gap: 12px;
 }
 
+.email-summary-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.email-summary-copy {
+  max-width: 760px;
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+
 .form-success {
   margin: 0;
   border-radius: 8px;

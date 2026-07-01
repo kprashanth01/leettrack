@@ -171,3 +171,9 @@ class TrackedProblemSaveResponse(BaseModel):
 
 class TrackedProblemsResponse(BaseModel):
     problems: list[TrackedProblemResponse]
+
+
+class WeeklySummaryEmailResponse(BaseModel):
+    status: Literal["sent"]
+    email_id: str
+    recipient: str

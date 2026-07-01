@@ -90,6 +90,15 @@ SUPABASE_URL=https://[PROJECT_REF].supabase.co
 SUPABASE_PUBLISHABLE_KEY=...
 ```
 
+Manual weekly summary emails use Resend:
+
+```text
+RESEND_API_KEY=re_...
+EMAIL_FROM=LeetTrack <onboarding@resend.dev>
+```
+
+For production, replace `EMAIL_FROM` with a sender on a verified Resend domain.
+
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
 
 Run backend tests from the `backend/` directory:
