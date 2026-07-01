@@ -162,6 +162,33 @@ select {
   padding: 36px;
 }
 
+.auth-gate {
+  display: grid;
+  min-height: calc(100vh - 72px);
+  place-items: center;
+}
+
+.auth-gate-content {
+  display: grid;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.auth-gate-content h1 {
+  margin-bottom: 0;
+}
+
+.auth-gate-content p {
+  max-width: 620px;
+  color: #506078;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.auth-gate-action {
+  margin-top: 6px;
+}
+
 .dashboard {
   display: grid;
   gap: 24px;
