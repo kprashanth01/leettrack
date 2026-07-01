@@ -7,6 +7,7 @@ This is the Manifest V3 browser extension for LeetTrack.
 - Runs a content script on LeetCode problem pages.
 - Detects the active problem slug and title from the real browser tab.
 - Shows the detected problem in the extension popup.
+- Opens LeetTrack with the detected problem context.
 
 ## Local Testing
 
@@ -17,5 +18,5 @@ This is the Manifest V3 browser extension for LeetTrack.
 5. Select the `extension/` folder.
 6. Open a LeetCode problem page, then click the LeetTrack extension icon.
 
-The extension does not authenticate or save data yet. Those belong in the next
-extension milestone after page detection is reliable.
+The extension does not authenticate or save data yet. It opens the LeetTrack web
+app, where the existing app auth gate remains responsible for sign-in.

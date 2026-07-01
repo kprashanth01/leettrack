@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { SyncedSubmission } from "../../types/dashboard";
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
@@ -33,7 +34,19 @@ const getLatestProblems = (submissions: SyncedSubmission[]) => {
 
 function ProblemsPage() {
   const { submissions, username } = useWorkspaceData();
+  const [searchParams] = useSearchParams();
   const problems = useMemo(() => getLatestProblems(submissions), [submissions]);
+  const extensionProblem =
+    searchParams.get("source") === "extension"
+      ? {
+          slug: searchParams.get("problemSlug")?.trim() ?? "",
+          title: searchParams.get("problemTitle")?.trim() ?? "",
+        }
+      : null;
+  const detectedProblem = extensionProblem?.slug ? extensionProblem : null;
+  const syncedDetectedProblem = detectedProblem
+    ? problems.find((problem) => problem.slug === detectedProblem.slug)
+    : undefined;
 
   return (
     <div className="workspace-page">
@@ -52,6 +65,37 @@ function ProblemsPage() {
           <span>{problems.length} unique synced problems</span>
         </aside>
       </header>
+
+      {detectedProblem ? (
+        <section
+          className="dashboard-section extension-context-panel"
+          aria-labelledby="extension-context-heading"
+        >
+          <div>
+            <p className="section-kicker">Detected from extension</p>
+            <h2 id="extension-context-heading">
+              {syncedDetectedProblem?.title || detectedProblem.title || detectedProblem.slug}
+            </h2>
+            <p className="problem-note">{detectedProblem.slug}</p>
+          </div>
+
+          <div className="extension-context-actions">
+            {syncedDetectedProblem ? (
+              <span className="status status-solved">Already synced</span>
+            ) : (
+              <span className="tag">Not in synced library yet</span>
+            )}
+            <a
+              className="secondary-action"
+              href={getProblemUrl(detectedProblem.slug)}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open LeetCode
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       <section className="dashboard-section" aria-labelledby="problems-heading">
         <div className="section-heading">
