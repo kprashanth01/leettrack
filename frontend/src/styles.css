@@ -1537,3 +1537,103 @@ tbody tr:last-child td {
   font-weight: 800;
   padding: 8px 12px;
 }
+
+.notes-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.note-editor {
+  position: sticky;
+  top: 28px;
+}
+
+.note-form-body,
+.note-list {
+  display: grid;
+  gap: 16px;
+}
+
+.note-problem-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.03);
+  padding: 12px;
+}
+
+.note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.note-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: 8px;
+  background: #242424;
+  padding: 18px;
+}
+
+.note-card-header,
+.note-card-footer {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.note-card h3,
+.note-content,
+.note-card-footer span {
+  margin: 0;
+}
+
+.note-card h3 {
+  color: #ffffff;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.note-content {
+  color: #e5e7eb;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.note-card-footer {
+  align-items: center;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  padding-top: 14px;
+}
+
+.note-card-footer span {
+  color: #8fa0bd;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .notes-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .note-editor {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .note-card-header,
+  .note-card-footer {
+    display: grid;
+  }
+}

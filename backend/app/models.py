@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -52,6 +52,7 @@ class Problem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     submissions: Mapped[list["Submission"]] = relationship(back_populates="problem")
+    notes: Mapped[list["ProblemNote"]] = relationship(back_populates="problem")
 
 
 class Submission(Base):
@@ -84,3 +85,27 @@ class Submission(Base):
         back_populates="submissions"
     )
     problem: Mapped[Problem] = relationship(back_populates="submissions")
+
+
+class ProblemNote(Base):
+    __tablename__ = "problem_notes"
+    __table_args__ = (
+        Index("ix_problem_notes_user_updated_at", "user_id", "updated_at"),
+        Index("ix_problem_notes_user_problem", "user_id", "problem_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(255), index=True)
+    problem_id: Mapped[int] = mapped_column(
+        ForeignKey("problems.id", ondelete="CASCADE"),
+        index=True,
+    )
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+    problem: Mapped[Problem] = relationship(back_populates="notes")

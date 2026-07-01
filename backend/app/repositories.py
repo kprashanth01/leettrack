@@ -3,8 +3,18 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LeetCodeAccount, Problem, Submission
-from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
+from app.models import LeetCodeAccount, Problem, ProblemNote, Submission
+from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission, ProblemNoteResponse
+
+
+class ProblemNotSyncedError(Exception):
+    pass
+
+
+def ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class LeetCodeSubmissionRepository:
@@ -65,7 +75,7 @@ class LeetCodeSubmissionRepository:
                 title=problem.title,
                 slug=problem.platform_slug,
                 language=submission.language,
-                submitted_at=self._ensure_utc(submission.submitted_at),
+                submitted_at=ensure_utc(submission.submitted_at),
                 source="leetcode",
                 difficulty=problem.difficulty,
                 topic_tags=problem.topic_tags or [],
@@ -140,7 +150,93 @@ class LeetCodeSubmissionRepository:
         )
         return existing_submission is not None
 
-    def _ensure_utc(self, value: datetime) -> datetime:
-        if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+class ProblemNoteRepository:
+    def __init__(self, db: Session) -> None:
+        self._db = db
+
+    def list_notes(self, user_id: str) -> list[ProblemNoteResponse]:
+        notes = self._db.scalars(
+            select(ProblemNote)
+            .join(Problem, Problem.id == ProblemNote.problem_id)
+            .where(ProblemNote.user_id == user_id)
+            .order_by(ProblemNote.updated_at.desc(), ProblemNote.id.desc())
+        ).all()
+
+        return [self._to_response(note) for note in notes]
+
+    def create_note(
+        self,
+        user_id: str,
+        problem_slug: str,
+        content: str,
+    ) -> ProblemNoteResponse:
+        problem = self._get_synced_problem(user_id=user_id, problem_slug=problem_slug)
+        note = ProblemNote(user_id=user_id, problem_id=problem.id, content=content)
+        self._db.add(note)
+        self._db.commit()
+        self._db.refresh(note)
+        return self._to_response(note)
+
+    def update_note(
+        self,
+        user_id: str,
+        note_id: int,
+        content: str,
+    ) -> ProblemNoteResponse | None:
+        note = self._get_owned_note(user_id=user_id, note_id=note_id)
+        if note is None:
+            return None
+
+        note.content = content
+        note.updated_at = datetime.now(timezone.utc)
+        self._db.commit()
+        self._db.refresh(note)
+        return self._to_response(note)
+
+    def delete_note(self, user_id: str, note_id: int) -> bool:
+        note = self._get_owned_note(user_id=user_id, note_id=note_id)
+        if note is None:
+            return False
+
+        self._db.delete(note)
+        self._db.commit()
+        return True
+
+    def _get_synced_problem(self, user_id: str, problem_slug: str) -> Problem:
+        problem = self._db.scalar(
+            select(Problem)
+            .join(Submission, Submission.problem_id == Problem.id)
+            .join(
+                LeetCodeAccount,
+                LeetCodeAccount.id == Submission.leetcode_account_id,
+            )
+            .where(
+                LeetCodeAccount.user_id == user_id,
+                Problem.platform == "leetcode",
+                Problem.platform_slug == problem_slug,
+            )
+            .limit(1)
+        )
+        if problem is None:
+            raise ProblemNotSyncedError
+        return problem
+
+    def _get_owned_note(self, user_id: str, note_id: int) -> ProblemNote | None:
+        return self._db.scalar(
+            select(ProblemNote).where(
+                ProblemNote.id == note_id,
+                ProblemNote.user_id == user_id,
+            )
+        )
+
+    def _to_response(self, note: ProblemNote) -> ProblemNoteResponse:
+        return ProblemNoteResponse(
+            id=note.id,
+            problem_title=note.problem.title,
+            problem_slug=note.problem.platform_slug,
+            difficulty=note.problem.difficulty,
+            topic_tags=note.problem.topic_tags or [],
+            content=note.content,
+            created_at=ensure_utc(note.created_at),
+            updated_at=ensure_utc(note.updated_at),
+        )
