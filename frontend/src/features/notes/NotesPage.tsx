@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   createProblemNote,
@@ -6,7 +7,11 @@ import {
   fetchProblemNotes,
   updateProblemNote,
 } from "../../api/notes";
-import type { ProblemNote, SyncedSubmission } from "../../types/dashboard";
+import type {
+  ProblemNote,
+  SyncedSubmission,
+  TrackedProblem,
+} from "../../types/dashboard";
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
 
 const formatUpdatedAt = (value: string) =>
@@ -15,7 +20,15 @@ const formatUpdatedAt = (value: string) =>
     timeStyle: "short",
   }).format(new Date(value));
 
-const getLatestProblems = (submissions: SyncedSubmission[]) => {
+type NoteableProblem = {
+  title: string;
+  slug: string;
+  difficulty: string | null;
+  topicTags: string[];
+  sourceLabel: "Solved" | "Saved";
+};
+
+const getLatestSubmissions = (submissions: SyncedSubmission[]) => {
   const latestBySlug = new Map<string, SyncedSubmission>();
 
   for (const submission of submissions) {
@@ -29,14 +42,53 @@ const getLatestProblems = (submissions: SyncedSubmission[]) => {
     }
   }
 
-  return Array.from(latestBySlug.values()).sort((first, second) =>
+  return Array.from(latestBySlug.values());
+};
+
+const getNoteableProblems = (
+  submissions: SyncedSubmission[],
+  trackedProblems: TrackedProblem[],
+) => {
+  const problemsBySlug = new Map<string, NoteableProblem>();
+
+  for (const submission of getLatestSubmissions(submissions)) {
+    problemsBySlug.set(submission.slug, {
+      title: submission.title,
+      slug: submission.slug,
+      difficulty: submission.difficulty,
+      topicTags: submission.topicTags,
+      sourceLabel: "Solved",
+    });
+  }
+
+  for (const trackedProblem of trackedProblems) {
+    if (problemsBySlug.has(trackedProblem.problemSlug)) {
+      continue;
+    }
+
+    problemsBySlug.set(trackedProblem.problemSlug, {
+      title: trackedProblem.problemTitle,
+      slug: trackedProblem.problemSlug,
+      difficulty: trackedProblem.difficulty,
+      topicTags: trackedProblem.topicTags,
+      sourceLabel: "Saved",
+    });
+  }
+
+  return Array.from(problemsBySlug.values()).sort((first, second) =>
     first.title.localeCompare(second.title),
   );
 };
 
 function NotesPage() {
-  const { submissions, username } = useWorkspaceData();
-  const problems = useMemo(() => getLatestProblems(submissions), [submissions]);
+  const { submissions, trackedProblems, username } = useWorkspaceData();
+  const [searchParams] = useSearchParams();
+  const requestedProblemSlug = searchParams.get("problemSlug")?.trim() ?? "";
+  const appliedRequestedProblemRef = useRef<string | null>(null);
+  const problems = useMemo(
+    () => getNoteableProblems(submissions, trackedProblems),
+    [submissions, trackedProblems],
+  );
   const [notes, setNotes] = useState<ProblemNote[]>([]);
   const [selectedSlug, setSelectedSlug] = useState("");
   const [content, setContent] = useState("");
@@ -50,10 +102,24 @@ function NotesPage() {
   const editingNote = notes.find((note) => note.id === editingNoteId);
 
   useEffect(() => {
+    const requestedProblemExists = problems.some(
+      (problem) => problem.slug === requestedProblemSlug,
+    );
+
+    if (
+      requestedProblemSlug &&
+      requestedProblemExists &&
+      appliedRequestedProblemRef.current !== requestedProblemSlug
+    ) {
+      appliedRequestedProblemRef.current = requestedProblemSlug;
+      setSelectedSlug(requestedProblemSlug);
+      return;
+    }
+
     if (!selectedSlug && problems.length > 0) {
       setSelectedSlug(problems[0].slug);
     }
-  }, [problems, selectedSlug]);
+  }, [problems, requestedProblemSlug, selectedSlug]);
 
   useEffect(() => {
     let isMounted = true;
@@ -95,7 +161,7 @@ function NotesPage() {
     const trimmedContent = content.trim();
 
     if (!selectedSlug) {
-      setErrorMessage("Sync problems before writing notes.");
+      setErrorMessage("Sync or save problems before writing notes.");
       setStatusMessage("");
       return;
     }
@@ -173,15 +239,15 @@ function NotesPage() {
           <p className="page-kicker">Notes</p>
           <h1>Capture what each solve taught you.</h1>
           <p>
-            Attach notes to synced LeetCode problems so observations, mistakes,
-            and patterns stay connected to your real practice history.
+            Attach notes to solved and saved LeetCode problems so observations,
+            mistakes, and patterns stay connected to your practice history.
           </p>
         </div>
         <aside className="focus-card" aria-label="Notes summary">
           <p>Notes workspace</p>
           <strong>{notes.length} notes</strong>
           <span>
-            {problemCount} synced problems
+            {problemCount} tracked problems
             {username ? ` from ${username}` : ""}
           </span>
         </aside>
@@ -206,7 +272,7 @@ function NotesPage() {
           {problemCount > 0 ? (
             <div className="note-form-body">
               <label className="form-field" htmlFor="note-problem">
-                <span>Synced problem</span>
+                <span>Tracked problem</span>
                 <select
                   id="note-problem"
                   value={selectedSlug}
@@ -233,6 +299,7 @@ function NotesPage() {
                     {selectedProblem.difficulty ?? "Unknown"}
                   </span>
                   <span className="problem-note">{selectedProblem.slug}</span>
+                  <span className="tag">{selectedProblem.sourceLabel}</span>
                 </div>
               ) : null}
 
@@ -283,8 +350,8 @@ function NotesPage() {
             <div className="empty-state">
               <strong>Sync problems before writing notes.</strong>
               <p>
-                Go to Dashboard, load your LeetCode submissions, then return
-                here to attach notes to real synced problems.
+                Go to Dashboard to sync submissions, or save a detected problem
+                from the extension, then return here to attach notes.
               </p>
             </div>
           )}
@@ -360,7 +427,7 @@ function NotesPage() {
             <div className="empty-state empty-state-large">
               <strong>No notes yet.</strong>
               <p>
-                Pick one of your {problemCount} synced problems and save the
+                Pick one of your {problemCount} tracked problems and save the
                 key idea, mistake, or revision hint you want to remember.
               </p>
             </div>

@@ -794,6 +794,19 @@ td strong {
   gap: 8px;
 }
 
+.problem-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.problem-card-footer .problem-note {
+  margin: 0;
+}
+
 .revision-list {
   display: grid;
   gap: 0;
