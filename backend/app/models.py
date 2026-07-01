@@ -14,9 +14,17 @@ class Base(DeclarativeBase):
 
 class LeetCodeAccount(Base):
     __tablename__ = "leetcode_accounts"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "username",
+            name="uq_leetcode_accounts_user_username",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    username: Mapped[str] = mapped_column(String(30), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.auth import CurrentUser, get_current_user
 from app.database import get_db
 from app.main import app
 from app.models import Base
@@ -33,6 +34,7 @@ def test_submissions_endpoint_returns_persisted_submissions_for_username() -> No
     session = create_test_session()
     repository = LeetCodeSubmissionRepository(session)
     repository.save_sync_result(
+        user_id="user-1",
         username="kprashanth01",
         submissions=[
             LeetCodeSubmission(
@@ -44,6 +46,10 @@ def test_submissions_endpoint_returns_persisted_submissions_for_username() -> No
         ],
     )
     app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
 
     try:
         client = TestClient(app)
@@ -67,8 +73,23 @@ def test_submissions_endpoint_returns_persisted_submissions_for_username() -> No
 
 
 def test_submissions_endpoint_rejects_invalid_username() -> None:
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
     client = TestClient(app)
 
-    response = client.get("/leetcode/submissions?username=   ")
+    try:
+        response = client.get("/leetcode/submissions?username=   ")
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 422
+
+
+def test_submissions_endpoint_requires_authentication() -> None:
+    client = TestClient(app)
+
+    response = client.get("/leetcode/submissions?username=kprashanth01")
+
+    assert response.status_code == 401

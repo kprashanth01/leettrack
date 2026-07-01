@@ -43,12 +43,16 @@ def test_sync_persists_leetcode_account_problems_and_submissions() -> None:
     )
 
     result = service.sync_recent_accepted_submissions(
+        user_id="user-1",
         username="kprashanth01",
         limit=10,
     )
 
     account = session.scalar(
-        select(LeetCodeAccount).where(LeetCodeAccount.username == "kprashanth01")
+        select(LeetCodeAccount).where(
+            LeetCodeAccount.user_id == "user-1",
+            LeetCodeAccount.username == "kprashanth01",
+        )
     )
     problems = session.scalars(select(Problem)).all()
     submissions = session.scalars(select(Submission)).all()
@@ -72,10 +76,12 @@ def test_sync_does_not_duplicate_existing_submissions() -> None:
     )
 
     first_result = service.sync_recent_accepted_submissions(
+        user_id="user-1",
         username="kprashanth01",
         limit=10,
     )
     second_result = service.sync_recent_accepted_submissions(
+        user_id="user-1",
         username="kprashanth01",
         limit=10,
     )
@@ -92,6 +98,7 @@ def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
     session = create_test_session()
     repository = LeetCodeSubmissionRepository(session)
     repository.save_sync_result(
+        user_id="user-1",
         username="kprashanth01",
         submissions=FakeLeetCodeClient().fetch_recent_accepted_submissions(
             username="kprashanth01",
@@ -99,7 +106,10 @@ def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
         ),
     )
 
-    saved_submissions = repository.list_submissions(username="kprashanth01")
+    saved_submissions = repository.list_submissions(
+        user_id="user-1",
+        username="kprashanth01",
+    )
 
     assert [submission.title for submission in saved_submissions] == [
         "Valid Parentheses",
@@ -107,3 +117,42 @@ def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
     ]
     assert saved_submissions[0].slug == "valid-parentheses"
     assert saved_submissions[0].language == "cpp"
+
+
+def test_repository_isolates_submissions_by_user_id() -> None:
+    session = create_test_session()
+    repository = LeetCodeSubmissionRepository(session)
+    submissions = FakeLeetCodeClient().fetch_recent_accepted_submissions(
+        username="kprashanth01",
+        limit=10,
+    )
+
+    repository.save_sync_result(
+        user_id="user-1",
+        username="kprashanth01",
+        submissions=submissions,
+    )
+    repository.save_sync_result(
+        user_id="user-2",
+        username="kprashanth01",
+        submissions=submissions,
+    )
+
+    assert (
+        len(
+            repository.list_submissions(
+                user_id="user-1",
+                username="kprashanth01",
+            )
+        )
+        == 2
+    )
+    assert (
+        len(
+            repository.list_submissions(
+                user_id="user-2",
+                username="kprashanth01",
+            )
+        )
+        == 2
+    )
