@@ -15,7 +15,7 @@ function App() {
   if (isLoading) {
     return (
       <section
-        className="auth-screen auth-screen-loading"
+        className="auth-screen auth-screen-dark auth-screen-loading dark"
         aria-label="Loading account"
       >
         <div className="auth-brand">

@@ -25,6 +25,11 @@ function ReviewPage() {
             next revision feature can use difficulty, tags, and solve dates to
             create smarter review reminders.
           </p>
+          <div className="empty-state-actions" aria-label="Planned review workflow">
+            <span>Prioritize stale topics</span>
+            <span>Use notes as context</span>
+            <span>Schedule reminders</span>
+          </div>
         </div>
       </section>
     </div>

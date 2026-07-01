@@ -1,24 +1,11 @@
-import { useMemo } from "react";
+import { lazy, Suspense } from "react";
 
-import StatCard from "../../components/StatCard";
-import type { DashboardStat, SyncedSubmission } from "../../types/dashboard";
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
 
 import LeetCodeSyncPanel from "./LeetCodeSyncPanel";
 import RecentProblemsTable from "./RecentProblemsTable";
 
-const formatLatestSubmission = (submissions: SyncedSubmission[]) => {
-  if (submissions.length === 0) {
-    return "No submissions";
-  }
-
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
-    new Date(submissions[0].submittedAt),
-  );
-};
-
-const getLanguageCount = (submissions: SyncedSubmission[]) =>
-  new Set(submissions.map((submission) => submission.language)).size;
+const AnalyticsDashboard = lazy(() => import("../analytics/AnalyticsDashboard"));
 
 function DashboardPage() {
   const {
@@ -31,60 +18,38 @@ function DashboardPage() {
     syncSubmissions,
   } = useWorkspaceData();
 
-  const dashboardStats: DashboardStat[] = useMemo(
-    () => [
-      {
-        label: "Total synced",
-        value: submissions.length.toString(),
-        helper: "Persisted accepted submissions",
-      },
-      {
-        label: "Languages",
-        value: getLanguageCount(submissions).toString(),
-        helper: "Based on saved submissions",
-      },
-      {
-        label: "Latest submission",
-        value: formatLatestSubmission(submissions),
-        helper: "Newest persisted LeetCode solve",
-      },
-      {
-        label: "Tracked account",
-        value: username || "Not set",
-        helper: "Loaded from real backend data",
-      },
-    ],
-    [submissions, username],
-  );
-
   return (
     <div className="dashboard" id="dashboard">
       <header className="dashboard-header">
         <div>
           <p className="page-kicker">Dashboard</p>
-          <h1>Track your LeetCode progress with intent.</h1>
+          <h1>Build your LeetCode streak with intent.</h1>
           <p>
-            Sync accepted submissions from LeetCode, persist them in Supabase,
-            and review your real practice history.
+            Track consistency, volume, difficulty mix, languages, and topic
+            coverage from your real synced submissions.
           </p>
         </div>
 
         <aside className="focus-card" aria-label="Sync status">
-          <p>Data source</p>
-          <strong>LeetCode + Supabase</strong>
+          <p>Tracked account</p>
+          <strong>{username || "Not set"}</strong>
           <span>
             {username
-              ? `Showing persisted submissions for ${username}.`
+              ? `${submissions.length} saved submissions loaded.`
               : "Enter a username to load persisted submissions."}
           </span>
         </aside>
       </header>
 
-      <section className="stats-grid" aria-label="Progress summary">
-        {dashboardStats.map((stat) => (
-          <StatCard key={stat.label} stat={stat} />
-        ))}
-      </section>
+      <Suspense
+        fallback={
+          <section className="analytics-dashboard" aria-label="Loading analytics">
+            <div className="analytics-loading-card">Loading progress analytics...</div>
+          </section>
+        }
+      >
+        <AnalyticsDashboard submissions={submissions} />
+      </Suspense>
 
       <LeetCodeSyncPanel
         initialUsername={username}

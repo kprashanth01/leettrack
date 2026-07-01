@@ -19,7 +19,10 @@ function AuthGate() {
   };
 
   return (
-    <section className="auth-screen" aria-labelledby="auth-gate-heading">
+    <section
+      className="auth-screen auth-screen-dark dark"
+      aria-labelledby="auth-gate-heading"
+    >
       <div className="auth-screen-copy">
         <div className="auth-brand">
           <span className="brand-mark" aria-hidden="true">

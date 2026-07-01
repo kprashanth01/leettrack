@@ -8,7 +8,7 @@ type AppShellProps = {
 
 function AppShell({ children }: AppShellProps) {
   return (
-    <div className="app-layout">
+    <div className="app-layout dark">
       <Sidebar />
       <main className="app-main">{children}</main>
     </div>

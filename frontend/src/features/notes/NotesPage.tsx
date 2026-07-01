@@ -25,6 +25,11 @@ function NotesPage() {
             The next notes feature will let you write takeaways per problem
             without creating disconnected manual records.
           </p>
+          <div className="empty-state-actions" aria-label="Planned notes workflow">
+            <span>Attach notes to synced problems</span>
+            <span>Tag mistake patterns</span>
+            <span>Reuse notes for review</span>
+          </div>
         </div>
       </section>
     </div>
