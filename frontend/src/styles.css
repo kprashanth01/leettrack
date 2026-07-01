@@ -162,33 +162,6 @@ select {
   padding: 36px;
 }
 
-.auth-gate {
-  display: grid;
-  min-height: calc(100vh - 72px);
-  place-items: center;
-}
-
-.auth-gate-content {
-  display: grid;
-  gap: 18px;
-  max-width: 720px;
-}
-
-.auth-gate-content h1 {
-  margin-bottom: 0;
-}
-
-.auth-gate-content p {
-  max-width: 620px;
-  color: #506078;
-  font-size: 1.05rem;
-  line-height: 1.7;
-}
-
-.auth-gate-action {
-  margin-top: 6px;
-}
-
 .dashboard {
   display: grid;
   gap: 24px;
@@ -210,6 +183,93 @@ select {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.auth-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 48px;
+  align-items: center;
+  min-height: 100vh;
+  padding: clamp(32px, 7vw, 88px);
+  background:
+    linear-gradient(135deg, rgb(37 99 235 / 0.08), transparent 34%),
+    #eef2f7;
+}
+
+.auth-screen-loading {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-screen-copy {
+  display: grid;
+  gap: clamp(42px, 9vw, 96px);
+}
+
+.auth-screen-copy h1 {
+  max-width: 780px;
+  margin-bottom: 18px;
+}
+
+.auth-screen-lede {
+  max-width: 660px;
+  margin-bottom: 0;
+  color: #506078;
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.auth-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgb(15 23 42 / 0.08);
+  padding: 28px;
+}
+
+.auth-card-label {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-card h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.auth-card p {
+  margin: 0;
+  color: #5b6b84;
+  line-height: 1.65;
+}
+
+.auth-gate-action {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.auth-loading-text {
+  margin: 0;
+  color: #506078;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 h1,
@@ -629,6 +689,11 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 960px) {
+  .auth-screen {
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+
   .app-layout {
     grid-template-columns: 1fr;
   }
@@ -662,6 +727,19 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 640px) {
+  .auth-screen {
+    gap: 28px;
+    padding: 24px 16px;
+  }
+
+  .auth-screen-copy {
+    gap: 42px;
+  }
+
+  .auth-card {
+    padding: 22px;
+  }
+
   .sidebar {
     padding: 20px 16px;
   }

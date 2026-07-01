@@ -6,20 +6,33 @@ import { useAuth } from "./auth/AuthContext";
 function App() {
   const { isLoading, user } = useAuth();
 
+  if (isLoading) {
+    return (
+      <section
+        className="auth-screen auth-screen-loading"
+        aria-label="Loading account"
+      >
+        <div className="auth-brand">
+          <span className="brand-mark" aria-hidden="true">
+            LT
+          </span>
+          <div>
+            <p className="brand-name">LeetTrack</p>
+            <p className="brand-caption">CP progress tracker</p>
+          </div>
+        </div>
+        <p className="auth-loading-text">Checking your session...</p>
+      </section>
+    );
+  }
+
+  if (!user) {
+    return <AuthGate />;
+  }
+
   return (
     <AppShell>
-      {isLoading ? (
-        <section className="auth-gate" aria-label="Loading account">
-          <div className="auth-gate-content">
-            <p className="page-kicker">LeetTrack</p>
-            <h1>Checking your session.</h1>
-          </div>
-        </section>
-      ) : user ? (
-        <DashboardPage />
-      ) : (
-        <AuthGate />
-      )}
+      <DashboardPage />
     </AppShell>
   );
 }
