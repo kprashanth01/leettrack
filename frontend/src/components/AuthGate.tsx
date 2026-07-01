@@ -19,13 +19,35 @@ function AuthGate() {
   };
 
   return (
-    <section className="auth-gate" aria-labelledby="auth-gate-heading">
-      <div className="auth-gate-content">
-        <p className="page-kicker">LeetTrack</p>
-        <h1 id="auth-gate-heading">Sign in to track your LeetCode progress.</h1>
+    <section className="auth-screen" aria-labelledby="auth-gate-heading">
+      <div className="auth-screen-copy">
+        <div className="auth-brand">
+          <span className="brand-mark" aria-hidden="true">
+            LT
+          </span>
+          <div>
+            <p className="brand-name">LeetTrack</p>
+            <p className="brand-caption">CP progress tracker</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="page-kicker">Private workspace</p>
+          <h1 id="auth-gate-heading">Sign in before syncing LeetCode data.</h1>
+          <p className="auth-screen-lede">
+            LeetTrack stores your submissions, notes, revision history, and
+            analytics under your account. GitHub login keeps that workspace
+            separate from every other user.
+          </p>
+        </div>
+      </div>
+
+      <div className="auth-card" aria-label="Sign in">
+        <p className="auth-card-label">Account</p>
+        <h2>Continue with GitHub</h2>
         <p>
-          Your submissions, notes, revision history, and analytics belong to
-          your account. Sign in before syncing or viewing dashboard data.
+          After signing in, you can sync accepted submissions and review your
+          real saved dashboard.
         </p>
 
         {isConfigured ? (
