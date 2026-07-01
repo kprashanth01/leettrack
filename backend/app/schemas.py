@@ -123,3 +123,51 @@ class ProblemNoteResponse(BaseModel):
 
 class ProblemNotesResponse(BaseModel):
     notes: list[ProblemNoteResponse]
+
+
+class TrackedProblemCreate(BaseModel):
+    problem_slug: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-z0-9-]+$",
+        description="LeetCode problem slug detected by the extension.",
+    )
+    problem_title: str = Field(
+        min_length=1,
+        max_length=255,
+        description="LeetCode problem title detected by the extension.",
+    )
+    source: Literal["extension"] = "extension"
+
+    @field_validator("problem_slug", mode="before")
+    @classmethod
+    def trim_problem_slug(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("problem_title", mode="before")
+    @classmethod
+    def trim_problem_title(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class TrackedProblemResponse(BaseModel):
+    id: int
+    problem_title: str
+    problem_slug: str
+    difficulty: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
+    source: Literal["extension"] = "extension"
+    created_at: datetime
+
+
+class TrackedProblemSaveResponse(BaseModel):
+    is_new: bool
+    problem: TrackedProblemResponse
+
+
+class TrackedProblemsResponse(BaseModel):
+    problems: list[TrackedProblemResponse]

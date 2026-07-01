@@ -3,8 +3,20 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LeetCodeAccount, Problem, ProblemNote, Submission
-from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission, ProblemNoteResponse
+from app.models import (
+    LeetCodeAccount,
+    Problem,
+    ProblemNote,
+    Submission,
+    TrackedProblem,
+)
+from app.schemas import (
+    LeetCodeProblemMetadata,
+    LeetCodeSubmission,
+    ProblemNoteResponse,
+    TrackedProblemResponse,
+    TrackedProblemSaveResponse,
+)
 
 
 class ProblemNotSyncedError(Exception):
@@ -239,4 +251,89 @@ class ProblemNoteRepository:
             content=note.content,
             created_at=ensure_utc(note.created_at),
             updated_at=ensure_utc(note.updated_at),
+        )
+
+
+class TrackedProblemRepository:
+    def __init__(self, db: Session) -> None:
+        self._db = db
+
+    def list_tracked_problems(self, user_id: str) -> list[TrackedProblemResponse]:
+        tracked_problems = self._db.scalars(
+            select(TrackedProblem)
+            .join(Problem, Problem.id == TrackedProblem.problem_id)
+            .where(TrackedProblem.user_id == user_id)
+            .order_by(TrackedProblem.created_at.desc(), TrackedProblem.id.desc())
+        ).all()
+
+        return [self._to_response(tracked_problem) for tracked_problem in tracked_problems]
+
+    def save_tracked_problem(
+        self,
+        user_id: str,
+        problem_slug: str,
+        problem_title: str,
+        source: str = "extension",
+    ) -> TrackedProblemSaveResponse:
+        problem = self._get_or_create_problem(
+            problem_slug=problem_slug,
+            problem_title=problem_title,
+        )
+        existing = self._db.scalar(
+            select(TrackedProblem).where(
+                TrackedProblem.user_id == user_id,
+                TrackedProblem.problem_id == problem.id,
+            )
+        )
+        if existing is not None:
+            return TrackedProblemSaveResponse(
+                is_new=False,
+                problem=self._to_response(existing),
+            )
+
+        tracked_problem = TrackedProblem(
+            user_id=user_id,
+            problem_id=problem.id,
+            source=source,
+        )
+        self._db.add(tracked_problem)
+        self._db.commit()
+        self._db.refresh(tracked_problem)
+        return TrackedProblemSaveResponse(
+            is_new=True,
+            problem=self._to_response(tracked_problem),
+        )
+
+    def _get_or_create_problem(self, problem_slug: str, problem_title: str) -> Problem:
+        problem = self._db.scalar(
+            select(Problem).where(
+                Problem.platform == "leetcode",
+                Problem.platform_slug == problem_slug,
+            )
+        )
+        if problem is not None:
+            if not problem.title:
+                problem.title = problem_title
+            return problem
+
+        problem = Problem(
+            platform="leetcode",
+            platform_slug=problem_slug,
+            title=problem_title,
+            difficulty=None,
+            topic_tags=[],
+        )
+        self._db.add(problem)
+        self._db.flush()
+        return problem
+
+    def _to_response(self, tracked_problem: TrackedProblem) -> TrackedProblemResponse:
+        return TrackedProblemResponse(
+            id=tracked_problem.id,
+            problem_title=tracked_problem.problem.title,
+            problem_slug=tracked_problem.problem.platform_slug,
+            difficulty=tracked_problem.problem.difficulty,
+            topic_tags=tracked_problem.problem.topic_tags or [],
+            source="extension",
+            created_at=ensure_utc(tracked_problem.created_at),
         )

@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import type { SyncedSubmission } from "../../types/dashboard";
+import type { SyncedSubmission, TrackedProblem } from "../../types/dashboard";
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
 
 const formatSubmittedAt = (value: string) =>
@@ -10,6 +10,17 @@ const formatSubmittedAt = (value: string) =>
   );
 
 const getProblemUrl = (slug: string) => `https://leetcode.com/problems/${slug}/`;
+
+type LibraryProblem = {
+  title: string;
+  slug: string;
+  difficulty: string | null;
+  topicTags: string[];
+  sourceLabel: "Solved" | "Saved";
+  language?: string;
+  submittedAt?: string;
+  savedAt?: string;
+};
 
 const getLatestProblems = (submissions: SyncedSubmission[]) => {
   const latestBySlug = new Map<string, SyncedSubmission>();
@@ -32,10 +43,65 @@ const getLatestProblems = (submissions: SyncedSubmission[]) => {
   );
 };
 
+const buildLibraryProblems = (
+  submissions: SyncedSubmission[],
+  trackedProblems: TrackedProblem[],
+): LibraryProblem[] => {
+  const latestSubmissions = getLatestProblems(submissions);
+  const libraryBySlug = new Map<string, LibraryProblem>();
+
+  for (const submission of latestSubmissions) {
+    libraryBySlug.set(submission.slug, {
+      title: submission.title,
+      slug: submission.slug,
+      difficulty: submission.difficulty,
+      topicTags: submission.topicTags,
+      sourceLabel: "Solved",
+      language: submission.language,
+      submittedAt: submission.submittedAt,
+    });
+  }
+
+  for (const trackedProblem of trackedProblems) {
+    if (libraryBySlug.has(trackedProblem.problemSlug)) {
+      continue;
+    }
+
+    libraryBySlug.set(trackedProblem.problemSlug, {
+      title: trackedProblem.problemTitle,
+      slug: trackedProblem.problemSlug,
+      difficulty: trackedProblem.difficulty,
+      topicTags: trackedProblem.topicTags,
+      sourceLabel: "Saved",
+      savedAt: trackedProblem.createdAt,
+    });
+  }
+
+  return Array.from(libraryBySlug.values()).sort((first, second) => {
+    const firstTime = new Date(first.submittedAt ?? first.savedAt ?? 0).getTime();
+    const secondTime = new Date(second.submittedAt ?? second.savedAt ?? 0).getTime();
+    return secondTime - firstTime;
+  });
+};
+
 function ProblemsPage() {
-  const { submissions, username } = useWorkspaceData();
+  const {
+    errorMessage,
+    isLoading,
+    saveTrackedProblem,
+    statusMessage,
+    submissions,
+    trackedProblems,
+    username,
+  } = useWorkspaceData();
+  const [localErrorMessage, setLocalErrorMessage] = useState("");
+  const [localStatusMessage, setLocalStatusMessage] = useState("");
   const [searchParams] = useSearchParams();
-  const problems = useMemo(() => getLatestProblems(submissions), [submissions]);
+  const solvedProblems = useMemo(() => getLatestProblems(submissions), [submissions]);
+  const problems = useMemo(
+    () => buildLibraryProblems(submissions, trackedProblems),
+    [submissions, trackedProblems],
+  );
   const extensionProblem =
     searchParams.get("source") === "extension"
       ? {
@@ -45,24 +111,56 @@ function ProblemsPage() {
       : null;
   const detectedProblem = extensionProblem?.slug ? extensionProblem : null;
   const syncedDetectedProblem = detectedProblem
-    ? problems.find((problem) => problem.slug === detectedProblem.slug)
+    ? solvedProblems.find((problem) => problem.slug === detectedProblem.slug)
     : undefined;
+  const savedDetectedProblem = detectedProblem
+    ? trackedProblems.find((problem) => problem.problemSlug === detectedProblem.slug)
+    : undefined;
+  const isDetectedProblemTracked = Boolean(
+    syncedDetectedProblem || savedDetectedProblem,
+  );
+  const handleSaveDetectedProblem = async () => {
+    if (!detectedProblem) {
+      return;
+    }
+
+    setLocalErrorMessage("");
+    setLocalStatusMessage("");
+
+    try {
+      const result = await saveTrackedProblem(
+        detectedProblem.slug,
+        detectedProblem.title || detectedProblem.slug,
+      );
+      setLocalStatusMessage(
+        result.isNew
+          ? "Saved this detected problem to your library."
+          : "This problem was already saved to your library.",
+      );
+    } catch (error) {
+      setLocalErrorMessage(
+        error instanceof Error ? error.message : "Could not save this problem.",
+      );
+    }
+  };
 
   return (
     <div className="workspace-page">
       <header className="page-header">
         <div>
           <p className="page-kicker">Problems</p>
-          <h1>Solved problem library.</h1>
+          <h1>Tracked problem library.</h1>
           <p>
-            Review unique synced problems from your LeetCode account with
+            Review solved LeetCode problems and saved extension picks with
             metadata that will later power notes, revision, and analytics.
           </p>
         </div>
         <aside className="focus-card" aria-label="Problem summary">
           <p>Problem source</p>
           <strong>{username || "No account loaded"}</strong>
-          <span>{problems.length} unique synced problems</span>
+          <span>
+            {solvedProblems.length} solved, {trackedProblems.length} saved
+          </span>
         </aside>
       </header>
 
@@ -82,8 +180,17 @@ function ProblemsPage() {
           <div className="extension-context-actions">
             {syncedDetectedProblem ? (
               <span className="status status-solved">Already synced</span>
+            ) : savedDetectedProblem ? (
+              <span className="status status-solved">Saved to library</span>
             ) : (
-              <span className="tag">Not in synced library yet</span>
+              <button
+                className="primary-action"
+                disabled={isLoading}
+                onClick={handleSaveDetectedProblem}
+                type="button"
+              >
+                {isLoading ? "Saving..." : "Save problem"}
+              </button>
             )}
             <a
               className="secondary-action"
@@ -94,6 +201,16 @@ function ProblemsPage() {
               Open LeetCode
             </a>
           </div>
+          {localStatusMessage ? (
+            <p className="form-success extension-context-message" role="status">
+              {localStatusMessage}
+            </p>
+          ) : null}
+          {localErrorMessage ? (
+            <p className="form-error extension-context-message" role="alert">
+              {localErrorMessage}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -101,7 +218,7 @@ function ProblemsPage() {
         <div className="section-heading">
           <div>
             <p className="section-kicker">Library</p>
-            <h2 id="problems-heading">Synced problems</h2>
+            <h2 id="problems-heading">Tracked problems</h2>
           </div>
           <span className="section-meta">{problems.length} problems</span>
         </div>
@@ -132,7 +249,8 @@ function ProblemsPage() {
                   ) : (
                     <span className="tag">Unknown difficulty</span>
                   )}
-                  <span className="tag">{problem.language}</span>
+                  {problem.language ? <span className="tag">{problem.language}</span> : null}
+                  <span className="tag">{problem.sourceLabel}</span>
                 </div>
 
                 {problem.topicTags.length > 0 ? (
@@ -148,7 +266,9 @@ function ProblemsPage() {
                 )}
 
                 <p className="problem-note">
-                  Last solved {formatSubmittedAt(problem.submittedAt)}
+                  {problem.submittedAt
+                    ? `Last solved ${formatSubmittedAt(problem.submittedAt)}`
+                    : `Saved ${formatSubmittedAt(problem.savedAt ?? "")}`}
                 </p>
               </article>
             ))}
@@ -157,8 +277,8 @@ function ProblemsPage() {
           <div className="empty-state">
             <strong>No synced problems yet.</strong>
             <p>
-              Go to Dashboard, enter your LeetCode username, and sync accepted
-              submissions to build your problem library.
+              Go to Dashboard and sync accepted submissions, or open a LeetCode
+              problem from the extension and save it here.
             </p>
           </div>
         )}

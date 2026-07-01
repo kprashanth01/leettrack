@@ -53,6 +53,9 @@ class Problem(Base):
 
     submissions: Mapped[list["Submission"]] = relationship(back_populates="problem")
     notes: Mapped[list["ProblemNote"]] = relationship(back_populates="problem")
+    tracked_by_users: Mapped[list["TrackedProblem"]] = relationship(
+        back_populates="problem"
+    )
 
 
 class Submission(Base):
@@ -109,3 +112,26 @@ class ProblemNote(Base):
     )
 
     problem: Mapped[Problem] = relationship(back_populates="notes")
+
+
+class TrackedProblem(Base):
+    __tablename__ = "tracked_problems"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "problem_id",
+            name="uq_tracked_problems_user_problem",
+        ),
+        Index("ix_tracked_problems_user_created_at", "user_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(255), index=True)
+    problem_id: Mapped[int] = mapped_column(
+        ForeignKey("problems.id", ondelete="CASCADE"),
+        index=True,
+    )
+    source: Mapped[str] = mapped_column(String(30), default="extension")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    problem: Mapped[Problem] = relationship(back_populates="tracked_by_users")

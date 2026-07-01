@@ -24,3 +24,13 @@ export type ProblemNote = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TrackedProblem = {
+  id: number;
+  problemTitle: string;
+  problemSlug: string;
+  difficulty: string | null;
+  topicTags: string[];
+  source: "extension";
+  createdAt: string;
+};
