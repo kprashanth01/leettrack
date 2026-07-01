@@ -13,10 +13,11 @@ class LeetCodeSubmissionRepository:
 
     def save_sync_result(
         self,
+        user_id: str,
         username: str,
         submissions: list[LeetCodeSubmission],
     ) -> int:
-        account = self._get_or_create_account(username)
+        account = self._get_or_create_account(user_id=user_id, username=username)
         account.last_synced_at = datetime.now(timezone.utc)
 
         saved_count = 0
@@ -39,7 +40,7 @@ class LeetCodeSubmissionRepository:
         self._db.commit()
         return saved_count
 
-    def list_submissions(self, username: str) -> list[LeetCodeSubmission]:
+    def list_submissions(self, user_id: str, username: str) -> list[LeetCodeSubmission]:
         rows = self._db.execute(
             select(Problem, Submission)
             .join(Submission, Submission.problem_id == Problem.id)
@@ -47,7 +48,10 @@ class LeetCodeSubmissionRepository:
                 LeetCodeAccount,
                 LeetCodeAccount.id == Submission.leetcode_account_id,
             )
-            .where(LeetCodeAccount.username == username)
+            .where(
+                LeetCodeAccount.user_id == user_id,
+                LeetCodeAccount.username == username,
+            )
             .order_by(Submission.submitted_at.desc())
         ).all()
 
@@ -62,14 +66,17 @@ class LeetCodeSubmissionRepository:
             for problem, submission in rows
         ]
 
-    def _get_or_create_account(self, username: str) -> LeetCodeAccount:
+    def _get_or_create_account(self, user_id: str, username: str) -> LeetCodeAccount:
         account = self._db.scalar(
-            select(LeetCodeAccount).where(LeetCodeAccount.username == username)
+            select(LeetCodeAccount).where(
+                LeetCodeAccount.user_id == user_id,
+                LeetCodeAccount.username == username,
+            )
         )
         if account is not None:
             return account
 
-        account = LeetCodeAccount(username=username)
+        account = LeetCodeAccount(user_id=user_id, username=username)
         self._db.add(account)
         self._db.flush()
         return account

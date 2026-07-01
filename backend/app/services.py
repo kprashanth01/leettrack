@@ -14,6 +14,7 @@ class LeetCodeSyncService:
 
     def sync_recent_accepted_submissions(
         self,
+        user_id: str,
         username: str,
         limit: int,
     ) -> LeetCodeSyncResult:
@@ -24,6 +25,7 @@ class LeetCodeSyncService:
         saved_count = 0
         if self._repository is not None:
             saved_count = self._repository.save_sync_result(
+                user_id=user_id,
                 username=username,
                 submissions=submissions,
             )

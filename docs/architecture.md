@@ -32,15 +32,15 @@ The current backend milestone includes:
 
 The frontend owns presentation, routing, UI state, and API calls.
 
-The frontend also owns the Supabase browser session. When a user is signed in, frontend API calls attach the Supabase access token as a bearer token. Backend route protection and user-owned database rows will be introduced in a later auth-hardening milestone.
+The frontend also owns the Supabase browser session. When a user is signed in, frontend API calls attach the Supabase access token as a bearer token.
 
-The backend owns API contracts, validation, authentication, persistence, scheduled jobs, and external integrations. LeetCode communication is isolated behind a client/service boundary so the rest of the application does not depend directly on LeetCode's GraphQL response shape.
+The backend owns API contracts, validation, authentication, persistence, scheduled jobs, and external integrations. Protected endpoints verify the bearer token with Supabase Auth and scope LeetCode account data by authenticated user id. LeetCode communication is isolated behind a client/service boundary so the rest of the application does not depend directly on LeetCode's GraphQL response shape.
 
 Database schema changes go through Alembic migrations. We do not modify production schema manually.
 
 ## Persistence Model
 
-`leetcode_accounts` stores the tracked LeetCode username and last sync timestamp.
+`leetcode_accounts` stores the authenticated Supabase user id, tracked LeetCode username, and last sync timestamp.
 
 `problems` stores platform-level problem identity such as `leetcode/two-sum`.
 

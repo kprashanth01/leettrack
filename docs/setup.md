@@ -83,6 +83,13 @@ SUPABASE_DB_USER=postgres
 SUPABASE_DB_PASSWORD=...
 ```
 
+Backend auth verification:
+
+```text
+SUPABASE_URL=https://[PROJECT_REF].supabase.co
+SUPABASE_PUBLISHABLE_KEY=...
+```
+
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
 
 Run backend tests from the `backend/` directory:

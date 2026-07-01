@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth import CurrentUser, get_current_user
 from app.database import get_db
 from app.leetcode_client import LeetCodeClientError
 from app.repositories import LeetCodeSubmissionRepository
@@ -27,10 +28,12 @@ def get_leetcode_submission_repository(
 @router.post("/sync", response_model=LeetCodeSyncResponse)
 def sync_recent_accepted_submissions(
     request: LeetCodeSyncRequest,
+    current_user: CurrentUser = Depends(get_current_user),
     service: LeetCodeSyncService = Depends(get_leetcode_sync_service),
 ) -> LeetCodeSyncResponse:
     try:
         result = service.sync_recent_accepted_submissions(
+            user_id=current_user.id,
             username=request.username,
             limit=request.limit,
         )
@@ -52,11 +55,15 @@ def sync_recent_accepted_submissions(
 @router.get("/submissions", response_model=LeetCodeSubmissionsResponse)
 def list_submissions(
     request: LeetCodeSyncRequest = Depends(),
+    current_user: CurrentUser = Depends(get_current_user),
     repository: LeetCodeSubmissionRepository = Depends(
         get_leetcode_submission_repository
     ),
 ) -> LeetCodeSubmissionsResponse:
     return LeetCodeSubmissionsResponse(
         username=request.username,
-        submissions=repository.list_submissions(username=request.username),
+        submissions=repository.list_submissions(
+            user_id=current_user.id,
+            username=request.username,
+        ),
     )
