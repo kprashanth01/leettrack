@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import type { SyncedSubmission, TrackedProblem } from "../../types/dashboard";
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
@@ -10,6 +10,7 @@ const formatSubmittedAt = (value: string) =>
   );
 
 const getProblemUrl = (slug: string) => `https://leetcode.com/problems/${slug}/`;
+const getNoteUrl = (slug: string) => `/notes?problemSlug=${encodeURIComponent(slug)}`;
 
 type LibraryProblem = {
   title: string;
@@ -192,6 +193,14 @@ function ProblemsPage() {
                 {isLoading ? "Saving..." : "Save problem"}
               </button>
             )}
+            {isDetectedProblemTracked ? (
+              <Link
+                className="primary-action"
+                to={getNoteUrl(detectedProblem.slug)}
+              >
+                Add note
+              </Link>
+            ) : null}
             <a
               className="secondary-action"
               href={getProblemUrl(detectedProblem.slug)}
@@ -265,11 +274,19 @@ function ProblemsPage() {
                   <p className="problem-note">No topic tags saved yet.</p>
                 )}
 
-                <p className="problem-note">
-                  {problem.submittedAt
-                    ? `Last solved ${formatSubmittedAt(problem.submittedAt)}`
-                    : `Saved ${formatSubmittedAt(problem.savedAt ?? "")}`}
-                </p>
+                <div className="problem-card-footer">
+                  <p className="problem-note">
+                    {problem.submittedAt
+                      ? `Last solved ${formatSubmittedAt(problem.submittedAt)}`
+                      : `Saved ${formatSubmittedAt(problem.savedAt ?? "")}`}
+                  </p>
+                  <Link
+                    className="secondary-action"
+                    to={getNoteUrl(problem.slug)}
+                  >
+                    Add note
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

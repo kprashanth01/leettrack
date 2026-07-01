@@ -182,7 +182,7 @@ class ProblemNoteRepository:
         problem_slug: str,
         content: str,
     ) -> ProblemNoteResponse:
-        problem = self._get_synced_problem(user_id=user_id, problem_slug=problem_slug)
+        problem = self._get_noteable_problem(user_id=user_id, problem_slug=problem_slug)
         note = ProblemNote(user_id=user_id, problem_id=problem.id, content=content)
         self._db.add(note)
         self._db.commit()
@@ -214,7 +214,27 @@ class ProblemNoteRepository:
         self._db.commit()
         return True
 
-    def _get_synced_problem(self, user_id: str, problem_slug: str) -> Problem:
+    def _get_noteable_problem(self, user_id: str, problem_slug: str) -> Problem:
+        problem = self._get_synced_problem(
+            user_id=user_id,
+            problem_slug=problem_slug,
+        )
+        if problem is not None:
+            return problem
+
+        problem = self._get_tracked_problem(
+            user_id=user_id,
+            problem_slug=problem_slug,
+        )
+        if problem is None:
+            raise ProblemNotSyncedError
+        return problem
+
+    def _get_synced_problem(
+        self,
+        user_id: str,
+        problem_slug: str,
+    ) -> Problem | None:
         problem = self._db.scalar(
             select(Problem)
             .join(Submission, Submission.problem_id == Problem.id)
@@ -229,9 +249,23 @@ class ProblemNoteRepository:
             )
             .limit(1)
         )
-        if problem is None:
-            raise ProblemNotSyncedError
         return problem
+
+    def _get_tracked_problem(
+        self,
+        user_id: str,
+        problem_slug: str,
+    ) -> Problem | None:
+        return self._db.scalar(
+            select(Problem)
+            .join(TrackedProblem, TrackedProblem.problem_id == Problem.id)
+            .where(
+                TrackedProblem.user_id == user_id,
+                Problem.platform == "leetcode",
+                Problem.platform_slug == problem_slug,
+            )
+            .limit(1)
+        )
 
     def _get_owned_note(self, user_id: str, note_id: int) -> ProblemNote | None:
         return self._db.scalar(

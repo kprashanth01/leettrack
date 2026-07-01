@@ -9,7 +9,7 @@ from app.auth import CurrentUser, get_current_user
 from app.database import get_db
 from app.main import app
 from app.models import Base
-from app.repositories import LeetCodeSubmissionRepository
+from app.repositories import LeetCodeSubmissionRepository, TrackedProblemRepository
 from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
 
 
@@ -49,6 +49,19 @@ def seed_synced_problem(session: Session, user_id: str = "user-1") -> None:
                 topic_tags=["Array", "Hash Table"],
             )
         },
+    )
+
+
+def seed_tracked_problem(session: Session, user_id: str = "user-1") -> None:
+    TrackedProblemRepository(session).save_tracked_problem(
+        user_id=user_id,
+        problem_slug="add-two-numbers",
+        problem_title="Add Two Numbers",
+        metadata=LeetCodeProblemMetadata(
+            slug="add-two-numbers",
+            difficulty="Medium",
+            topic_tags=["Linked List", "Math", "Recursion"],
+        ),
     )
 
 
@@ -115,7 +128,66 @@ def test_notes_endpoint_rejects_notes_for_unsynced_problem() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Sync this LeetCode problem before adding notes."
+    assert (
+        response.json()["detail"]
+        == "Sync or save this LeetCode problem before adding notes."
+    )
+
+
+def test_notes_endpoint_creates_note_for_owned_tracked_problem() -> None:
+    session = create_test_session()
+    seed_tracked_problem(session)
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/notes",
+            json={
+                "problem_slug": "add-two-numbers",
+                "content": "Pointer carry logic is the main thing to review.",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    assert response.json()["problem_slug"] == "add-two-numbers"
+    assert response.json()["problem_title"] == "Add Two Numbers"
+    assert response.json()["difficulty"] == "Medium"
+    assert response.json()["topic_tags"] == ["Linked List", "Math", "Recursion"]
+
+
+def test_notes_endpoint_rejects_notes_for_problem_tracked_by_another_user() -> None:
+    session = create_test_session()
+    seed_tracked_problem(session, user_id="user-1")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-2",
+        email="second@example.com",
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/notes",
+            json={
+                "problem_slug": "add-two-numbers",
+                "content": "This problem belongs to user one.",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "Sync or save this LeetCode problem before adding notes."
+    )
 
 
 def test_notes_endpoint_isolates_notes_by_user() -> None:

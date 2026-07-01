@@ -47,7 +47,7 @@ def create_note(
     except ProblemNotSyncedError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sync this LeetCode problem before adding notes.",
+            detail="Sync or save this LeetCode problem before adding notes.",
         ) from exc
 
 
