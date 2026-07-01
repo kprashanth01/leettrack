@@ -13,3 +13,14 @@ export type SyncedSubmission = {
   difficulty: string | null;
   topicTags: string[];
 };
+
+export type ProblemNote = {
+  id: number;
+  problemTitle: string;
+  problemSlug: string;
+  difficulty: string | null;
+  topicTags: string[];
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};

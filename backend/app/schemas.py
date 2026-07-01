@@ -65,3 +65,61 @@ class LeetCodeSyncResult(BaseModel):
 class LeetCodeSubmissionsResponse(BaseModel):
     username: str
     submissions: list[LeetCodeSubmission]
+
+
+class ProblemNoteCreate(BaseModel):
+    problem_slug: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-z0-9-]+$",
+        description="LeetCode problem slug that already exists in synced data.",
+    )
+    content: str = Field(
+        min_length=1,
+        max_length=5000,
+        description="User-authored note content for the synced problem.",
+    )
+
+    @field_validator("problem_slug", mode="before")
+    @classmethod
+    def trim_problem_slug(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def trim_content(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class ProblemNoteUpdate(BaseModel):
+    content: str = Field(
+        min_length=1,
+        max_length=5000,
+        description="Updated note content.",
+    )
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def trim_content(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class ProblemNoteResponse(BaseModel):
+    id: int
+    problem_title: str
+    problem_slug: str
+    difficulty: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProblemNotesResponse(BaseModel):
+    notes: list[ProblemNoteResponse]

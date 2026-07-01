@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.leetcode import router as leetcode_router
+from app.routes.notes import router as notes_router
 from app.schemas import HealthResponse
 
 app = FastAPI(
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(leetcode_router)
+app.include_router(notes_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["system"])
