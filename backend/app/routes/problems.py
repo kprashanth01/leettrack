@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, get_current_user
 from app.database import get_db
+from app.leetcode_client import LeetCodeClientError, LeetCodeGraphQLClient
 from app.repositories import TrackedProblemRepository
 from app.schemas import (
     TrackedProblemCreate,
@@ -17,6 +18,10 @@ def get_tracked_problem_repository(
     db: Session = Depends(get_db),
 ) -> TrackedProblemRepository:
     return TrackedProblemRepository(db)
+
+
+def get_problem_metadata_client() -> LeetCodeGraphQLClient:
+    return LeetCodeGraphQLClient()
 
 
 @router.get("/tracked", response_model=TrackedProblemsResponse)
@@ -38,13 +43,21 @@ def save_tracked_problem(
     request: TrackedProblemCreate,
     response: Response,
     current_user: CurrentUser = Depends(get_current_user),
+    metadata_client: LeetCodeGraphQLClient = Depends(get_problem_metadata_client),
     repository: TrackedProblemRepository = Depends(get_tracked_problem_repository),
 ) -> TrackedProblemSaveResponse:
+    metadata = None
+    try:
+        metadata = metadata_client.fetch_problem_metadata(request.problem_slug)
+    except LeetCodeClientError:
+        metadata = None
+
     result = repository.save_tracked_problem(
         user_id=current_user.id,
         problem_slug=request.problem_slug,
         problem_title=request.problem_title,
         source=request.source,
+        metadata=metadata,
     )
     if not result.is_new:
         response.status_code = status.HTTP_200_OK
