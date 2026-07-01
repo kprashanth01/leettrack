@@ -4,6 +4,7 @@ import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
 
 import LeetCodeSyncPanel from "./LeetCodeSyncPanel";
 import RecentProblemsTable from "./RecentProblemsTable";
+import WeeklyEmailPanel from "./WeeklyEmailPanel";
 
 const AnalyticsDashboard = lazy(() => import("../analytics/AnalyticsDashboard"));
 
@@ -59,6 +60,8 @@ function DashboardPage() {
         onLoadSubmissions={loadSubmissions}
         onSyncSubmissions={syncSubmissions}
       />
+
+      <WeeklyEmailPanel disabled={submissions.length === 0} />
 
       <RecentProblemsTable submissions={submissions} />
     </div>
