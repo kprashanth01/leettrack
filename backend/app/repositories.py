@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import LeetCodeAccount, Problem, Submission
-from app.schemas import LeetCodeSubmission
+from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
 
 
 class LeetCodeSubmissionRepository:
@@ -16,13 +16,18 @@ class LeetCodeSubmissionRepository:
         user_id: str,
         username: str,
         submissions: list[LeetCodeSubmission],
+        metadata_by_slug: dict[str, LeetCodeProblemMetadata] | None = None,
     ) -> int:
         account = self._get_or_create_account(user_id=user_id, username=username)
         account.last_synced_at = datetime.now(timezone.utc)
+        metadata_by_slug = metadata_by_slug or {}
 
         saved_count = 0
         for submission in submissions:
-            problem = self._get_or_create_problem(submission)
+            problem = self._get_or_create_problem(
+                submission=submission,
+                metadata=metadata_by_slug.get(submission.slug),
+            )
             if self._submission_exists(account.id, problem.id, submission.submitted_at):
                 continue
 
@@ -62,6 +67,8 @@ class LeetCodeSubmissionRepository:
                 language=submission.language,
                 submitted_at=self._ensure_utc(submission.submitted_at),
                 source="leetcode",
+                difficulty=problem.difficulty,
+                topic_tags=problem.topic_tags or [],
             )
             for problem, submission in rows
         ]
@@ -81,7 +88,11 @@ class LeetCodeSubmissionRepository:
         self._db.flush()
         return account
 
-    def _get_or_create_problem(self, submission: LeetCodeSubmission) -> Problem:
+    def _get_or_create_problem(
+        self,
+        submission: LeetCodeSubmission,
+        metadata: LeetCodeProblemMetadata | None,
+    ) -> Problem:
         problem = self._db.scalar(
             select(Problem).where(
                 Problem.platform == "leetcode",
@@ -89,16 +100,30 @@ class LeetCodeSubmissionRepository:
             )
         )
         if problem is not None:
+            self._update_problem_metadata(problem=problem, metadata=metadata)
             return problem
 
         problem = Problem(
             platform="leetcode",
             platform_slug=submission.slug,
             title=submission.title,
+            difficulty=metadata.difficulty if metadata else None,
+            topic_tags=metadata.topic_tags if metadata else [],
         )
         self._db.add(problem)
         self._db.flush()
         return problem
+
+    def _update_problem_metadata(
+        self,
+        problem: Problem,
+        metadata: LeetCodeProblemMetadata | None,
+    ) -> None:
+        if metadata is None:
+            return
+
+        problem.difficulty = metadata.difficulty
+        problem.topic_tags = metadata.topic_tags
 
     def _submission_exists(
         self,

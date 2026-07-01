@@ -75,6 +75,8 @@ def test_sync_endpoint_returns_normalized_recent_accepted_submissions() -> None:
                 "language": "python3",
                 "submitted_at": "2026-07-01T12:00:00Z",
                 "source": "leetcode",
+                "difficulty": None,
+                "topic_tags": [],
             }
         ],
     }

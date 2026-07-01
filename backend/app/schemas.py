@@ -37,6 +37,14 @@ class LeetCodeSubmission(BaseModel):
     language: str
     submitted_at: datetime
     source: Literal["leetcode"] = "leetcode"
+    difficulty: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
+
+
+class LeetCodeProblemMetadata(BaseModel):
+    slug: str
+    difficulty: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
 
 
 class LeetCodeSyncResponse(BaseModel):

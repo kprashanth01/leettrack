@@ -48,6 +48,45 @@ def test_client_fetches_and_normalizes_recent_accepted_submissions() -> None:
     assert submissions[0].source == "leetcode"
 
 
+def test_client_fetches_problem_metadata() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = request.read().decode()
+        assert "questionData" in payload
+        assert "two-sum" in payload
+
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "question": {
+                        "difficulty": "Easy",
+                        "topicTags": [{"name": "Array"}, {"name": "Hash Table"}],
+                    }
+                }
+            },
+        )
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    client = LeetCodeGraphQLClient(http_client=http_client)
+
+    metadata = client.fetch_problem_metadata("two-sum")
+
+    assert metadata is not None
+    assert metadata.slug == "two-sum"
+    assert metadata.difficulty == "Easy"
+    assert metadata.topic_tags == ["Array", "Hash Table"]
+
+
+def test_client_returns_none_when_problem_metadata_is_missing() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": {"question": None}})
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    client = LeetCodeGraphQLClient(http_client=http_client)
+
+    assert client.fetch_problem_metadata("missing-problem") is None
+
+
 def test_client_raises_clear_error_when_leetcode_returns_graphql_errors() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
