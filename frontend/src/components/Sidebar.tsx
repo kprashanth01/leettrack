@@ -1,6 +1,13 @@
+import { NavLink } from "react-router-dom";
+
 import AuthPanel from "./AuthPanel";
 
-const navigationItems = ["Dashboard", "Problems", "Notes", "Review"];
+const navigationItems = [
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Problems", path: "/problems" },
+  { label: "Notes", path: "/notes" },
+  { label: "Review", path: "/review" },
+];
 
 function Sidebar() {
   return (
@@ -17,14 +24,15 @@ function Sidebar() {
 
       <nav className="nav-list" aria-label="Main sections">
         {navigationItems.map((item) => (
-          <a
-            aria-current={item === "Dashboard" ? "page" : undefined}
-            className="nav-link"
-            href="#dashboard"
-            key={item}
+          <NavLink
+            className={({ isActive }) =>
+              isActive ? "nav-link nav-link-active" : "nav-link"
+            }
+            key={item.path}
+            to={item.path}
           >
-            {item}
-          </a>
+            {item.label}
+          </NavLink>
         ))}
       </nav>
 

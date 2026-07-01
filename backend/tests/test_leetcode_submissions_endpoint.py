@@ -10,7 +10,7 @@ from app.database import get_db
 from app.main import app
 from app.models import Base
 from app.repositories import LeetCodeSubmissionRepository
-from app.schemas import LeetCodeSubmission
+from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
 
 
 def override_db_session(session: Session):
@@ -44,6 +44,13 @@ def test_submissions_endpoint_returns_persisted_submissions_for_username() -> No
                 submitted_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
             )
         ],
+        metadata_by_slug={
+            "two-sum": LeetCodeProblemMetadata(
+                slug="two-sum",
+                difficulty="Easy",
+                topic_tags=["Array", "Hash Table"],
+            )
+        },
     )
     app.dependency_overrides[get_db] = override_db_session(session)
     app.dependency_overrides[get_current_user] = lambda: CurrentUser(
@@ -67,6 +74,8 @@ def test_submissions_endpoint_returns_persisted_submissions_for_username() -> No
                 "language": "python3",
                 "submitted_at": "2026-07-01T12:00:00Z",
                 "source": "leetcode",
+                "difficulty": "Easy",
+                "topic_tags": ["Array", "Hash Table"],
             }
         ],
     }

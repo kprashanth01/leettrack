@@ -169,7 +169,15 @@ select {
   margin: 0 auto;
 }
 
-.dashboard-header {
+.workspace-page {
+  display: grid;
+  gap: 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.dashboard-header,
+.page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: 24px;
@@ -287,7 +295,8 @@ h1 {
   line-height: 1.02;
 }
 
-.dashboard-header > div > p:last-child {
+.dashboard-header > div > p:last-child,
+.page-header > div > p:last-child {
   max-width: 660px;
   margin-bottom: 0;
   color: #506078;
@@ -622,6 +631,15 @@ td strong {
   color: #111827;
 }
 
+.problem-link {
+  color: #111827;
+  font-weight: 800;
+}
+
+.problem-link:hover {
+  color: #1d4ed8;
+}
+
 .problem-note {
   max-width: 34rem;
   margin: 6px 0 0;
@@ -629,6 +647,16 @@ td strong {
   font-size: 0.84rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.problem-tags {
+  margin-top: 10px;
+}
+
+.muted-table-text {
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .badge,
@@ -698,6 +726,35 @@ td strong {
   line-height: 1.6;
 }
 
+.empty-state-large {
+  min-height: 280px;
+  align-content: center;
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 20px;
+}
+
+.problem-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-height: 220px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.problem-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .revision-list {
   display: grid;
   gap: 0;
@@ -765,6 +822,7 @@ tbody tr:last-child td {
   }
 
   .dashboard-header,
+  .page-header,
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -774,6 +832,10 @@ tbody tr:last-child td {
   }
 
   .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .problem-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -810,6 +872,11 @@ tbody tr:last-child td {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .problem-grid {
+    grid-template-columns: 1fr;
+    padding: 16px;
   }
 
   .revision-item {

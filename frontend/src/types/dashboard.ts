@@ -10,4 +10,6 @@ export type SyncedSubmission = {
   language: string;
   submittedAt: string;
   source: "leetcode";
+  difficulty: string | null;
+  topicTags: string[];
 };

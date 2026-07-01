@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Base, LeetCodeAccount, Problem, Submission
 from app.repositories import LeetCodeSubmissionRepository
-from app.schemas import LeetCodeSubmission
+from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
 from app.services import LeetCodeSyncService
 
 
@@ -27,6 +27,21 @@ class FakeLeetCodeClient:
                 submitted_at=datetime(2026, 7, 2, 12, 0, tzinfo=timezone.utc),
             ),
         ]
+
+    def fetch_problem_metadata(self, slug: str) -> LeetCodeProblemMetadata | None:
+        metadata_by_slug = {
+            "two-sum": LeetCodeProblemMetadata(
+                slug="two-sum",
+                difficulty="Easy",
+                topic_tags=["Array", "Hash Table"],
+            ),
+            "valid-parentheses": LeetCodeProblemMetadata(
+                slug="valid-parentheses",
+                difficulty="Easy",
+                topic_tags=["Stack", "String"],
+            ),
+        }
+        return metadata_by_slug.get(slug)
 
 
 def create_test_session() -> Session:
@@ -65,6 +80,13 @@ def test_sync_persists_leetcode_account_problems_and_submissions() -> None:
         "two-sum",
         "valid-parentheses",
     }
+    assert {
+        (problem.platform_slug, problem.difficulty, tuple(problem.topic_tags))
+        for problem in problems
+    } == {
+        ("two-sum", "Easy", ("Array", "Hash Table")),
+        ("valid-parentheses", "Easy", ("Stack", "String")),
+    }
     assert len(submissions) == 2
 
 
@@ -97,13 +119,20 @@ def test_sync_does_not_duplicate_existing_submissions() -> None:
 def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
     session = create_test_session()
     repository = LeetCodeSubmissionRepository(session)
+    fake_client = FakeLeetCodeClient()
+    submissions = fake_client.fetch_recent_accepted_submissions(
+        username="kprashanth01",
+        limit=10,
+    )
     repository.save_sync_result(
         user_id="user-1",
         username="kprashanth01",
-        submissions=FakeLeetCodeClient().fetch_recent_accepted_submissions(
-            username="kprashanth01",
-            limit=10,
-        ),
+        submissions=submissions,
+        metadata_by_slug={
+            submission.slug: fake_client.fetch_problem_metadata(submission.slug)
+            for submission in submissions
+            if fake_client.fetch_problem_metadata(submission.slug) is not None
+        },
     )
 
     saved_submissions = repository.list_submissions(
@@ -117,6 +146,8 @@ def test_repository_lists_saved_submissions_for_username_newest_first() -> None:
     ]
     assert saved_submissions[0].slug == "valid-parentheses"
     assert saved_submissions[0].language == "cpp"
+    assert saved_submissions[0].difficulty == "Easy"
+    assert saved_submissions[0].topic_tags == ["Stack", "String"]
 
 
 def test_repository_isolates_submissions_by_user_id() -> None:

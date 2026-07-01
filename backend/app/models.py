@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -47,6 +47,8 @@ class Problem(Base):
     platform: Mapped[str] = mapped_column(String(30), index=True)
     platform_slug: Mapped[str] = mapped_column(String(255), index=True)
     title: Mapped[str] = mapped_column(String(255))
+    difficulty: Mapped[str | None] = mapped_column(String(20))
+    topic_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     submissions: Mapped[list["Submission"]] = relationship(back_populates="problem")

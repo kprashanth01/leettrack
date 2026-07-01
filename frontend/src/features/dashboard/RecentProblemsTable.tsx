@@ -17,6 +17,8 @@ const formatSubmittedAt = (value: string) =>
 const getSubmittedAtTime = (submission: SyncedSubmission) =>
   new Date(submission.submittedAt).getTime();
 
+const getProblemUrl = (slug: string) => `https://leetcode.com/problems/${slug}/`;
+
 function RecentProblemsTable({ submissions }: RecentProblemsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("all");
@@ -120,6 +122,7 @@ function RecentProblemsTable({ submissions }: RecentProblemsTableProps) {
             <thead>
               <tr>
                 <th scope="col">Problem</th>
+                <th scope="col">Difficulty</th>
                 <th scope="col">Language</th>
                 <th scope="col">Source</th>
                 <th scope="col">Submitted</th>
@@ -129,8 +132,35 @@ function RecentProblemsTable({ submissions }: RecentProblemsTableProps) {
               {filteredSubmissions.map((submission) => (
                 <tr key={`${submission.slug}-${submission.submittedAt}`}>
                   <td data-label="Problem">
-                    <strong>{submission.title}</strong>
+                    <a
+                      className="problem-link"
+                      href={getProblemUrl(submission.slug)}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {submission.title}
+                    </a>
                     <p className="problem-note">{submission.slug}</p>
+                    {submission.topicTags.length > 0 ? (
+                      <div className="tag-list problem-tags" aria-label="Topic tags">
+                        {submission.topicTags.slice(0, 4).map((tag) => (
+                          <span className="tag" key={tag}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td data-label="Difficulty">
+                    {submission.difficulty ? (
+                      <span
+                        className={`badge badge-${submission.difficulty.toLowerCase()}`}
+                      >
+                        {submission.difficulty}
+                      </span>
+                    ) : (
+                      <span className="muted-table-text">Unknown</span>
+                    )}
                   </td>
                   <td data-label="Language">
                     <span className="tag">{submission.language}</span>

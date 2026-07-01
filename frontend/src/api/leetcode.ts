@@ -11,6 +11,8 @@ type ApiSubmission = {
   language: string;
   submitted_at: string;
   source: "leetcode";
+  difficulty: string | null;
+  topic_tags: string[];
 };
 
 type SyncResponse = {
@@ -39,6 +41,8 @@ const mapSubmission = (submission: ApiSubmission): SyncedSubmission => ({
   language: submission.language,
   submittedAt: submission.submitted_at,
   source: submission.source,
+  difficulty: submission.difficulty,
+  topicTags: submission.topic_tags,
 });
 
 const readErrorMessage = async (response: Response) => {
