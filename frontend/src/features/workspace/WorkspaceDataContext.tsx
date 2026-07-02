@@ -188,7 +188,30 @@ export function WorkspaceDataProvider({ children }: WorkspaceDataProviderProps) 
           return;
         }
 
-        const savedSubmissions = await fetchLeetCodeSubmissions(savedUsername);
+        let savedSubmissions: SyncedSubmission[];
+
+        try {
+          await syncLeetCodeSubmissions(savedUsername);
+          savedSubmissions = await fetchLeetCodeSubmissions(savedUsername);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setStatusMessage(
+            `Synced latest LeetCode data; loaded ${savedSubmissions.length} saved submissions.`,
+          );
+        } catch {
+          savedSubmissions = await fetchLeetCodeSubmissions(savedUsername);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setStatusMessage(
+            `Loaded ${savedSubmissions.length} saved submissions. Could not refresh from LeetCode right now.`,
+          );
+        }
 
         if (!isMounted) {
           return;
@@ -197,7 +220,6 @@ export function WorkspaceDataProvider({ children }: WorkspaceDataProviderProps) 
         setUsername(savedUsername);
         setSubmissions(savedSubmissions);
         window.localStorage.setItem(STORED_USERNAME_KEY, savedUsername);
-        setStatusMessage(`Loaded ${savedSubmissions.length} saved submissions.`);
       } catch (error) {
         if (isMounted) {
           setErrorMessage(

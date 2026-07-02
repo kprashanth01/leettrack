@@ -6,7 +6,7 @@ This guide prepares LeetTrack for production deployment with:
 - Backend on Render or Railway.
 - Database on Supabase Postgres.
 - Email delivery through Resend.
-- Weekly scheduled email dispatch through the backend scheduler endpoint.
+- Manual weekly email reports, with optional scheduled dispatch through the backend scheduler endpoint.
 
 ## Deployment Architecture
 
@@ -18,7 +18,7 @@ flowchart LR
   Backend --> SupabaseDb["Supabase Postgres"]
   Backend --> LeetCode["LeetCode GraphQL"]
   Backend --> Resend["Resend"]
-  Cron["Render/Railway cron"] --> Backend
+  OptionalCron["Optional cron provider"] --> Backend
 ```
 
 ## 1. Supabase
@@ -112,9 +112,18 @@ VITE_SUPABASE_PUBLISHABLE_KEY=[PUBLISHABLE_KEY]
 
 The included `frontend/vercel.json` rewrites all routes to `index.html` so React Router paths such as `/dashboard`, `/notes`, and `/settings` work after refresh.
 
-## 4. Weekly Email Scheduler
+## 4. Weekly Emails
 
-The scheduled job should send a weekly `POST` request to:
+The free-tier production path is:
+
+1. the user signs in and opens LeetTrack;
+2. the frontend loads the saved LeetCode username;
+3. the frontend asks the backend to sync the latest public accepted submissions;
+4. the user sends the weekly summary manually from Settings.
+
+This keeps reports fresh while avoiding a paid cron dependency.
+
+Optional automation can be added later with a cron provider. The scheduled job should send a weekly `POST` request to:
 
 ```text
 https://[BACKEND_HOST]/emails/weekly-summary/dispatch
@@ -126,7 +135,7 @@ Required header:
 X-LeetTrack-Scheduler-Secret: [SCHEDULER_SECRET]
 ```
 
-The dispatch endpoint:
+The optional dispatch endpoint:
 
 - checks the scheduler secret;
 - skips users already emailed for the current UTC week;
@@ -145,6 +154,6 @@ The dispatch endpoint:
 - [ ] Backend `/health` returns `{"status":"ok","service":"leettrack-api"}`.
 - [ ] Frontend Vercel env vars point to the production backend and Supabase project.
 - [ ] Resend sender uses a verified domain before public use.
-- [ ] Scheduler secret is set on the backend and the cron provider.
-- [ ] Weekly dispatch endpoint is tested once manually with the scheduler header.
+- [ ] If using scheduled email automation, scheduler secret is set on the backend and the cron provider.
+- [ ] If using scheduled email automation, weekly dispatch endpoint is tested once manually with the scheduler header.
 - [ ] No `.env`, `.env.local`, API keys, database passwords, or scheduler secrets are committed.

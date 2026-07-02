@@ -31,7 +31,7 @@ function SettingsPage() {
           <span>
             {submissions.length > 0
               ? `${submissions.length} solved submissions are available for reports.`
-              : "Sync submissions before enabling useful weekly summaries."}
+              : "Open-sync will refresh submissions when a saved username is available."}
           </span>
         </aside>
       </header>
@@ -46,7 +46,7 @@ function SettingsPage() {
           onSyncSubmissions={syncSubmissions}
         />
 
-        <WeeklyEmailPanel disabled={submissions.length === 0} />
+        <WeeklyEmailPanel />
       </div>
     </div>
   );

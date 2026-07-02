@@ -101,13 +101,15 @@ EMAIL_FROM=LeetTrack <onboarding@resend.dev>
 
 For production, replace `EMAIL_FROM` with a sender on a verified Resend domain.
 
-Automated weekly summary dispatch uses the same Resend configuration plus a scheduler secret:
+Weekly summaries can be sent manually from the Settings page. When you open the app with a saved LeetCode username, LeetTrack refreshes accepted submissions first, so the manual report uses current saved data without requiring a cron job.
+
+Optional automated weekly summary dispatch uses the same Resend configuration plus a scheduler secret:
 
 ```text
 SCHEDULER_SECRET=replace-with-a-long-random-secret
 ```
 
-A cron provider can trigger weekly summaries by sending a `POST` request to:
+A cron provider can trigger automated weekly summaries by sending a `POST` request to:
 
 ```text
 https://[BACKEND_URL]/emails/weekly-summary/dispatch
@@ -119,7 +121,7 @@ Include this header:
 X-LeetTrack-Scheduler-Secret: [SCHEDULER_SECRET]
 ```
 
-The dispatcher sends only to users who enabled weekly summaries in the app. Before sending, it uses the user's saved LeetCode username to sync the latest public accepted submissions, then builds the email from the refreshed database state. It records delivery attempts, sync outcomes, and skips users who already received the automated summary for the current UTC week.
+The dispatcher sends only to users who enabled weekly summaries in the app. Before sending, it uses the user's saved LeetCode username to sync the latest public accepted submissions, then builds the email from the refreshed database state. It records delivery attempts, sync outcomes, and skips users who already received the automated summary for the current UTC week. If you are not running a scheduler, users can still send manual reports from Settings.
 
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
 

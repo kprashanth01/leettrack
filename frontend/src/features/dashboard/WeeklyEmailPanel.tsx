@@ -7,11 +7,7 @@ import {
   type EmailPreferences,
 } from "../../api/emails";
 
-type WeeklyEmailPanelProps = {
-  disabled: boolean;
-};
-
-function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
+function WeeklyEmailPanel() {
   const [preferences, setPreferences] = useState<EmailPreferences | null>(null);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
@@ -68,8 +64,8 @@ function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
       setPreferences(updatedPreferences);
       setStatusMessage(
         updatedPreferences.weeklySummaryEnabled
-          ? "Weekly summaries enabled for future scheduled emails."
-          : "Weekly summaries disabled for future scheduled emails.",
+          ? "Weekly email preference saved. Manual reports can be sent from this page."
+          : "Weekly email preference turned off.",
       );
     } catch (error) {
       setErrorMessage(
@@ -104,28 +100,31 @@ function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
       <div className="section-heading">
         <div>
           <p className="section-kicker">Email summary</p>
-          <h2 id="weekly-email-heading">Send weekly progress report</h2>
+          <h2 id="weekly-email-heading">Send manual weekly report</h2>
         </div>
       </div>
 
       <div className="email-summary-panel">
         <p className="email-summary-copy">
-          Email yourself a polished snapshot of solved volume, active days,
-          streaks, difficulty mix, topic coverage, recent solves, notes, and a
-          recommended focus area.
+          LeetTrack refreshes your saved LeetCode data when you open the app.
+          Send yourself the current snapshot whenever you want a weekly review.
         </p>
         <div className="email-preference-card">
           <div>
-            <p className="email-preference-label">Weekly automation preference</p>
+            <p className="email-preference-label">Saved email preference</p>
             <strong>
               {preferences?.weeklySummaryEnabled
-                ? "Scheduled summaries are on"
-                : "Scheduled summaries are off"}
+                ? "Weekly reports are opted in"
+                : "Weekly reports are opted out"}
             </strong>
             <span>
               {isLoadingPreferences
                 ? "Loading your email preference..."
                 : `Recipient: ${preferences?.recipient ?? "your account email"}`}
+            </span>
+            <span>
+              Automatic delivery needs a scheduler. On the free setup, use the
+              manual send button.
             </span>
           </div>
           <button
@@ -146,7 +145,7 @@ function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
 
         <button
           className="primary-action"
-          disabled={disabled || isSending}
+          disabled={isSending}
           onClick={handleSendSummary}
           type="button"
         >
