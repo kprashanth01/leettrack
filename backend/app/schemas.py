@@ -186,3 +186,10 @@ class EmailPreferencesResponse(BaseModel):
 
 class EmailPreferencesUpdate(BaseModel):
     weekly_summary_enabled: bool
+
+
+class WeeklySummaryDispatchResponse(BaseModel):
+    status: Literal["completed"]
+    sent_count: int
+    skipped_count: int
+    failed_count: int

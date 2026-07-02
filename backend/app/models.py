@@ -146,9 +146,33 @@ class EmailPreference(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[str] = mapped_column(String(255), index=True)
     weekly_summary_enabled: Mapped[bool] = mapped_column(Boolean(), default=False)
+    recipient_email: Mapped[str | None] = mapped_column(String(320), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class EmailDeliveryAttempt(Base):
+    __tablename__ = "email_delivery_attempts"
+    __table_args__ = (
+        Index(
+            "ix_email_delivery_attempts_user_period",
+            "user_id",
+            "email_type",
+            "period_start",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(255), index=True)
+    recipient_email: Mapped[str] = mapped_column(String(320), index=True)
+    email_type: Mapped[str] = mapped_column(String(50), index=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    provider_message_id: Mapped[str | None] = mapped_column(String(255))
+    error_message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    EmailDeliveryAttempt,
     EmailPreference,
     LeetCodeAccount,
     Problem,
@@ -397,16 +398,26 @@ class EmailPreferenceRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def get_or_create(self, user_id: str) -> EmailPreference:
+    def get_or_create(
+        self,
+        user_id: str,
+        recipient_email: str | None = None,
+    ) -> EmailPreference:
         preference = self._db.scalar(
             select(EmailPreference).where(EmailPreference.user_id == user_id)
         )
         if preference is not None:
+            if recipient_email and preference.recipient_email != recipient_email:
+                preference.recipient_email = recipient_email
+                preference.updated_at = datetime.now(timezone.utc)
+                self._db.commit()
+                self._db.refresh(preference)
             return preference
 
         preference = EmailPreference(
             user_id=user_id,
             weekly_summary_enabled=False,
+            recipient_email=recipient_email,
         )
         self._db.add(preference)
         self._db.commit()
@@ -417,10 +428,75 @@ class EmailPreferenceRepository:
         self,
         user_id: str,
         weekly_summary_enabled: bool,
+        recipient_email: str | None = None,
     ) -> EmailPreference:
-        preference = self.get_or_create(user_id=user_id)
+        preference = self.get_or_create(
+            user_id=user_id,
+            recipient_email=recipient_email,
+        )
         preference.weekly_summary_enabled = weekly_summary_enabled
+        if recipient_email:
+            preference.recipient_email = recipient_email
         preference.updated_at = datetime.now(timezone.utc)
         self._db.commit()
         self._db.refresh(preference)
         return preference
+
+    def list_weekly_summary_recipients(self) -> list[EmailPreference]:
+        return list(
+            self._db.scalars(
+                select(EmailPreference)
+                .where(
+                    EmailPreference.weekly_summary_enabled.is_(True),
+                    EmailPreference.recipient_email.is_not(None),
+                )
+                .order_by(EmailPreference.id.asc())
+            ).all()
+        )
+
+
+class EmailDeliveryAttemptRepository:
+    def __init__(self, db: Session) -> None:
+        self._db = db
+
+    def has_sent(
+        self,
+        user_id: str,
+        email_type: str,
+        period_start: datetime,
+    ) -> bool:
+        existing_attempt = self._db.scalar(
+            select(EmailDeliveryAttempt).where(
+                EmailDeliveryAttempt.user_id == user_id,
+                EmailDeliveryAttempt.email_type == email_type,
+                EmailDeliveryAttempt.period_start == period_start,
+                EmailDeliveryAttempt.status == "sent",
+            )
+        )
+        return existing_attempt is not None
+
+    def record_attempt(
+        self,
+        user_id: str,
+        recipient_email: str,
+        email_type: str,
+        status: str,
+        period_start: datetime,
+        period_end: datetime,
+        provider_message_id: str | None = None,
+        error_message: str | None = None,
+    ) -> EmailDeliveryAttempt:
+        attempt = EmailDeliveryAttempt(
+            user_id=user_id,
+            recipient_email=recipient_email,
+            email_type=email_type,
+            status=status,
+            period_start=period_start,
+            period_end=period_end,
+            provider_message_id=provider_message_id,
+            error_message=error_message,
+        )
+        self._db.add(attempt)
+        self._db.commit()
+        self._db.refresh(attempt)
+        return attempt
