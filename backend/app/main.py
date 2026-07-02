@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_cors_allowed_origins, validate_runtime_configuration
+from app.routes.account import router as account_router
 from app.routes.emails import router as emails_router
 from app.routes.leetcode import router as leetcode_router
 from app.routes.notes import router as notes_router
@@ -28,6 +29,7 @@ app.include_router(leetcode_router)
 app.include_router(notes_router)
 app.include_router(problems_router)
 app.include_router(emails_router)
+app.include_router(account_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["system"])

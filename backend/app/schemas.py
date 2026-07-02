@@ -188,6 +188,11 @@ class EmailPreferencesUpdate(BaseModel):
     weekly_summary_enabled: bool
 
 
+class AccountSettingsResponse(BaseModel):
+    leetcode_username: str | None = None
+    email: str | None = None
+
+
 class WeeklySummaryDispatchResponse(BaseModel):
     status: Literal["completed"]
     sent_count: int
