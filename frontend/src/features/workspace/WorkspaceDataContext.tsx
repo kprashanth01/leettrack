@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { fetchAccountSettings } from "../../api/account";
 import {
   fetchLeetCodeSubmissions,
   syncLeetCodeSubmissions,
@@ -163,10 +164,60 @@ export function WorkspaceDataProvider({ children }: WorkspaceDataProviderProps) 
   };
 
   useEffect(() => {
-    if (username) {
-      void loadSubmissions(username);
-    }
-    void loadTrackedProblems();
+    let isMounted = true;
+
+    const bootstrapWorkspace = async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+      setStatusMessage("");
+
+      try {
+        const [accountSettings, loadedTrackedProblems] = await Promise.all([
+          fetchAccountSettings(),
+          fetchTrackedProblems(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setTrackedProblems(loadedTrackedProblems);
+
+        const savedUsername = accountSettings.leetcodeUsername ?? username.trim();
+        if (!savedUsername) {
+          return;
+        }
+
+        const savedSubmissions = await fetchLeetCodeSubmissions(savedUsername);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setUsername(savedUsername);
+        setSubmissions(savedSubmissions);
+        window.localStorage.setItem(STORED_USERNAME_KEY, savedUsername);
+        setStatusMessage(`Loaded ${savedSubmissions.length} saved submissions.`);
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not load workspace data.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void bootstrapWorkspace();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const value = useMemo<WorkspaceDataContextValue>(
