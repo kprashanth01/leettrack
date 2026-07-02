@@ -1,5 +1,10 @@
 (function attachLeetTrackUrl(root) {
-  function buildLeetTrackProblemUrl({ appBaseUrl, problem }) {
+  const DEFAULT_LEETTRACK_APP_BASE_URL = "https://leettrack-pied.vercel.app";
+
+  function buildLeetTrackProblemUrl({
+    appBaseUrl = DEFAULT_LEETTRACK_APP_BASE_URL,
+    problem,
+  }) {
     if (!problem?.isProblemPage || !problem.slug) {
       throw new Error("A detected LeetCode problem is required.");
     }
@@ -11,7 +16,7 @@
     return url.toString();
   }
 
-  const api = { buildLeetTrackProblemUrl };
+  const api = { DEFAULT_LEETTRACK_APP_BASE_URL, buildLeetTrackProblemUrl };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

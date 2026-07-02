@@ -7,7 +7,16 @@ This is the Manifest V3 browser extension for LeetTrack.
 - Runs a content script on LeetCode problem pages.
 - Detects the active problem slug and title from the real browser tab.
 - Shows the detected problem in the extension popup.
-- Opens LeetTrack with the detected problem context.
+- Opens the deployed LeetTrack app with the detected problem context.
+
+By default, the popup opens:
+
+```text
+https://leettrack-pied.vercel.app
+```
+
+For local extension development, temporarily pass a local `appBaseUrl` to
+`buildLeetTrackProblemUrl` in `src/popup.js`.
 
 ## Local Testing
 

@@ -1,7 +1,27 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildLeetTrackProblemUrl } = require("../src/leetTrackUrl.js");
+const {
+  DEFAULT_LEETTRACK_APP_BASE_URL,
+  buildLeetTrackProblemUrl,
+} = require("../src/leetTrackUrl.js");
+
+test("uses the deployed LeetTrack app by default", () => {
+  const url = buildLeetTrackProblemUrl({
+    problem: {
+      isProblemPage: true,
+      slug: "two-sum",
+      title: "Two Sum",
+      url: "https://leetcode.com/problems/two-sum/",
+    },
+  });
+
+  assert.equal(DEFAULT_LEETTRACK_APP_BASE_URL, "https://leettrack-pied.vercel.app");
+  assert.equal(
+    url,
+    "https://leettrack-pied.vercel.app/problems?source=extension&problemSlug=two-sum&problemTitle=Two+Sum",
+  );
+});
 
 test("builds a LeetTrack URL with detected problem context", () => {
   const url = buildLeetTrackProblemUrl({
