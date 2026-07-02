@@ -10,7 +10,7 @@ flowchart LR
   Backend --> LeetCode["LeetCode GraphQL"]
   Backend --> Database["PostgreSQL via SQLAlchemy/Alembic"]
   Backend --> Email["Resend"]
-  Cron["Cron provider"] --> Backend
+  OptionalCron["Optional cron provider"] --> Backend
   Backend --> FutureAI["Future: AI coaching services"]
 
   Extension["Future: Browser Extension"] --> Backend
@@ -26,8 +26,9 @@ The current backend milestone includes:
 - a `/health` endpoint;
 - a `POST /leetcode/sync` endpoint that fetches and persists recent accepted LeetCode submissions;
 - a `GET /leetcode/submissions` endpoint used by the dashboard to display persisted submissions;
+- app-open LeetCode refresh using the user's saved username;
 - manual weekly summary email sending through Resend;
-- cron-safe weekly summary dispatch for opted-in users that refreshes saved LeetCode data before sending;
+- optional cron-safe weekly summary dispatch for opted-in users that refreshes saved LeetCode data before sending;
 - Alembic-managed tables for LeetCode accounts, problems, and submissions;
 - documentation for setup and workflow.
 
@@ -53,9 +54,9 @@ Database schema changes go through Alembic migrations. We do not modify producti
 
 `tracked_problems` stores user-saved LeetCode problems detected by the browser extension before they are counted as solved submissions.
 
-`email_preferences` stores per-user email settings such as whether weekly summary automation is enabled. Manual sends remain explicit user actions.
+`email_preferences` stores per-user email settings such as whether weekly reports are opted in. Manual sends remain explicit user actions unless a scheduler is configured.
 
-`email_delivery_attempts` stores automated email delivery audit records, including the weekly period, recipient, status, provider message id, sync status, sync counts, and failure reason when available. This prevents duplicate automated weekly sends and gives us a production debugging trail.
+`email_delivery_attempts` stores automated email delivery audit records, including the weekly period, recipient, status, provider message id, sync status, sync counts, and failure reason when available. This prevents duplicate automated weekly sends when a scheduler is configured and gives us a production debugging trail.
 
 The frontend dashboard reads from the backend API instead of product-facing mock data. Dashboard views focus on analytics and progress inspection, while account-level controls such as LeetCode sync and email preferences live in Settings. Test fixtures and fake clients remain acceptable inside automated tests.
 
