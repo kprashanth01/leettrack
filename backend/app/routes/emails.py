@@ -1,7 +1,10 @@
+import os
+import secrets
 from collections import Counter
+from datetime import datetime, time, timedelta, timezone
 from html import escape
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,10 +16,15 @@ from app.email_service import (
     ResendEmailSender,
 )
 from app.models import LeetCodeAccount, Problem, ProblemNote, Submission
-from app.repositories import EmailPreferenceRepository, ensure_utc
+from app.repositories import (
+    EmailDeliveryAttemptRepository,
+    EmailPreferenceRepository,
+    ensure_utc,
+)
 from app.schemas import (
     EmailPreferencesResponse,
     EmailPreferencesUpdate,
+    WeeklySummaryDispatchResponse,
     WeeklySummaryEmailResponse,
 )
 
@@ -273,7 +281,10 @@ def get_email_preferences(
     current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> EmailPreferencesResponse:
-    preference = EmailPreferenceRepository(db).get_or_create(user_id=current_user.id)
+    preference = EmailPreferenceRepository(db).get_or_create(
+        user_id=current_user.id,
+        recipient_email=current_user.email,
+    )
     return _preference_response(
         weekly_summary_enabled=preference.weekly_summary_enabled,
         current_user=current_user,
@@ -289,10 +300,129 @@ def update_email_preferences(
     preference = EmailPreferenceRepository(db).update_weekly_summary(
         user_id=current_user.id,
         weekly_summary_enabled=payload.weekly_summary_enabled,
+        recipient_email=current_user.email,
     )
     return _preference_response(
         weekly_summary_enabled=preference.weekly_summary_enabled,
         current_user=current_user,
+    )
+
+
+def _weekly_period(now: datetime | None = None) -> tuple[datetime, datetime]:
+    current_time = now or datetime.now(timezone.utc)
+    current_time = ensure_utc(current_time)
+    week_start_date = current_time.date() - timedelta(days=current_time.weekday())
+    period_start = datetime.combine(
+        week_start_date,
+        time.min,
+        tzinfo=timezone.utc,
+    )
+    return period_start, period_start + timedelta(days=7)
+
+
+def _verify_scheduler_secret(secret_header: str | None) -> None:
+    if not secret_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid scheduler secret.",
+        )
+
+    expected_secret = os.getenv("SCHEDULER_SECRET")
+    if not expected_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Scheduler secret is not configured.",
+        )
+
+    if not secrets.compare_digest(secret_header, expected_secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid scheduler secret.",
+        )
+
+
+@router.post(
+    "/weekly-summary/dispatch",
+    response_model=WeeklySummaryDispatchResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def dispatch_weekly_summary_emails(
+    scheduler_secret: str | None = Header(
+        default=None,
+        alias="X-LeetTrack-Scheduler-Secret",
+    ),
+    db: Session = Depends(get_db),
+    email_sender: ResendEmailSender = Depends(get_email_sender),
+) -> WeeklySummaryDispatchResponse:
+    _verify_scheduler_secret(scheduler_secret)
+    period_start, period_end = _weekly_period()
+    preference_repository = EmailPreferenceRepository(db)
+    attempt_repository = EmailDeliveryAttemptRepository(db)
+    recipients = preference_repository.list_weekly_summary_recipients()
+
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+    builder = WeeklySummaryBuilder(db)
+
+    for preference in recipients:
+        recipient_email = preference.recipient_email
+        if not recipient_email:
+            continue
+
+        if attempt_repository.has_sent(
+            user_id=preference.user_id,
+            email_type="weekly_summary",
+            period_start=period_start,
+        ):
+            attempt_repository.record_attempt(
+                user_id=preference.user_id,
+                recipient_email=recipient_email,
+                email_type="weekly_summary",
+                status="skipped",
+                period_start=period_start,
+                period_end=period_end,
+                error_message="Weekly summary already sent for this period.",
+            )
+            skipped_count += 1
+            continue
+
+        html = builder.build_html(user_id=preference.user_id)
+        try:
+            email_id = email_sender.send_email(
+                to_email=recipient_email,
+                subject="Your LeetTrack weekly summary",
+                html=html,
+            )
+        except (EmailConfigurationError, EmailDeliveryError) as exc:
+            attempt_repository.record_attempt(
+                user_id=preference.user_id,
+                recipient_email=recipient_email,
+                email_type="weekly_summary",
+                status="failed",
+                period_start=period_start,
+                period_end=period_end,
+                error_message=str(exc),
+            )
+            failed_count += 1
+            continue
+
+        attempt_repository.record_attempt(
+            user_id=preference.user_id,
+            recipient_email=recipient_email,
+            email_type="weekly_summary",
+            status="sent",
+            period_start=period_start,
+            period_end=period_end,
+            provider_message_id=email_id,
+        )
+        sent_count += 1
+
+    return WeeklySummaryDispatchResponse(
+        status="completed",
+        sent_count=sent_count,
+        skipped_count=skipped_count,
+        failed_count=failed_count,
     )
 
 

@@ -99,6 +99,26 @@ EMAIL_FROM=LeetTrack <onboarding@resend.dev>
 
 For production, replace `EMAIL_FROM` with a sender on a verified Resend domain.
 
+Automated weekly summary dispatch uses the same Resend configuration plus a scheduler secret:
+
+```text
+SCHEDULER_SECRET=replace-with-a-long-random-secret
+```
+
+A cron provider can trigger weekly summaries by sending a `POST` request to:
+
+```text
+https://[BACKEND_URL]/emails/weekly-summary/dispatch
+```
+
+Include this header:
+
+```text
+X-LeetTrack-Scheduler-Secret: [SCHEDULER_SECRET]
+```
+
+The dispatcher sends only to users who enabled weekly summaries in the app. It records delivery attempts and skips users who already received the automated summary for the current UTC week.
+
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
 
 Run backend tests from the `backend/` directory:

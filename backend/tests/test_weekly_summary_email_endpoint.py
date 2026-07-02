@@ -8,8 +8,12 @@ from sqlalchemy.pool import StaticPool
 from app.auth import CurrentUser, get_current_user
 from app.database import get_db
 from app.main import app
-from app.models import Base
-from app.repositories import LeetCodeSubmissionRepository, ProblemNoteRepository
+from app.models import Base, EmailDeliveryAttempt
+from app.repositories import (
+    EmailPreferenceRepository,
+    LeetCodeSubmissionRepository,
+    ProblemNoteRepository,
+)
 from app.routes.emails import get_email_sender
 from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
 
@@ -81,6 +85,14 @@ def seed_user_activity(session: Session) -> None:
         user_id="user-1",
         problem_slug="two-sum",
         content="Remember complement lookup.",
+    )
+
+
+def opt_in_user(session: Session, user_id: str, recipient_email: str) -> None:
+    EmailPreferenceRepository(session).update_weekly_summary(
+        user_id=user_id,
+        weekly_summary_enabled=True,
+        recipient_email=recipient_email,
     )
 
 
@@ -256,3 +268,91 @@ def test_email_preferences_are_scoped_to_authenticated_user() -> None:
         "weekly_summary_enabled": False,
         "recipient": "other@example.com",
     }
+
+
+def test_weekly_summary_dispatch_requires_scheduler_secret() -> None:
+    client = TestClient(app)
+
+    response = client.post("/emails/weekly-summary/dispatch")
+
+    assert response.status_code == 401
+
+
+def test_weekly_summary_dispatch_sends_to_opted_in_users(monkeypatch) -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    opt_in_user(session, user_id="user-1", recipient_email="user@example.com")
+    fake_sender = FakeEmailSender()
+    monkeypatch.setenv("SCHEDULER_SECRET", "scheduler-secret")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/emails/weekly-summary/dispatch",
+            headers={"X-LeetTrack-Scheduler-Secret": "scheduler-secret"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert response.json()["sent_count"] == 1
+    assert response.json()["skipped_count"] == 0
+    assert response.json()["failed_count"] == 0
+    assert fake_sender.sent_messages[0]["to_email"] == "user@example.com"
+    attempts = session.query(EmailDeliveryAttempt).all()
+    assert len(attempts) == 1
+    assert attempts[0].user_id == "user-1"
+    assert attempts[0].status == "sent"
+    assert attempts[0].provider_message_id == "email_test_123"
+
+
+def test_weekly_summary_dispatch_skips_opted_out_users(monkeypatch) -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    fake_sender = FakeEmailSender()
+    monkeypatch.setenv("SCHEDULER_SECRET", "scheduler-secret")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/emails/weekly-summary/dispatch",
+            headers={"X-LeetTrack-Scheduler-Secret": "scheduler-secret"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert response.json()["sent_count"] == 0
+    assert response.json()["skipped_count"] == 0
+    assert fake_sender.sent_messages == []
+    assert session.query(EmailDeliveryAttempt).all() == []
+
+
+def test_weekly_summary_dispatch_does_not_resend_same_week(monkeypatch) -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    opt_in_user(session, user_id="user-1", recipient_email="user@example.com")
+    fake_sender = FakeEmailSender()
+    monkeypatch.setenv("SCHEDULER_SECRET", "scheduler-secret")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+
+    try:
+        client = TestClient(app)
+        headers = {"X-LeetTrack-Scheduler-Secret": "scheduler-secret"}
+        first_response = client.post("/emails/weekly-summary/dispatch", headers=headers)
+        second_response = client.post("/emails/weekly-summary/dispatch", headers=headers)
+    finally:
+        app.dependency_overrides.clear()
+
+    assert first_response.status_code == 202
+    assert second_response.status_code == 202
+    assert len(fake_sender.sent_messages) == 1
+    assert second_response.json()["sent_count"] == 0
+    assert second_response.json()["skipped_count"] == 1
+    attempts = session.query(EmailDeliveryAttempt).all()
+    assert [attempt.status for attempt in attempts] == ["sent", "skipped"]
