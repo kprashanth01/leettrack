@@ -4,8 +4,6 @@ const metaElement = document.querySelector("#problem-meta");
 const slugElement = document.querySelector("#problem-slug");
 const openInAppAction = document.querySelector("#open-in-app-action");
 
-const LEETTRACK_APP_BASE_URL = "http://127.0.0.1:5173";
-
 let detectedProblem = null;
 
 function renderProblem(problem) {
@@ -43,7 +41,6 @@ openInAppAction.addEventListener("click", () => {
   }
 
   const url = globalThis.LeetTrackUrl.buildLeetTrackProblemUrl({
-    appBaseUrl: LEETTRACK_APP_BASE_URL,
     problem: detectedProblem,
   });
   chrome.tabs.create({ url });
