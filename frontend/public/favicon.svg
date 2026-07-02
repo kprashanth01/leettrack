@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">LeetTrack logo</title>
+  <desc id="desc">A dark rounded square with green and yellow LeetTrack initials.</desc>
+  <defs>
+    <linearGradient id="mark-gradient" x1="20" y1="18" x2="108" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5c518" />
+      <stop offset="0.58" stop-color="#22c55e" />
+      <stop offset="1" stop-color="#16a34a" />
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020617" flood-opacity="0.35" />
+    </filter>
+  </defs>
+  <rect x="12" y="12" width="104" height="104" rx="26" fill="#111827" filter="url(#soft-shadow)" />
+  <path d="M30 35c0-4.4 3.6-8 8-8h52c4.4 0 8 3.6 8 8v58c0 4.4-3.6 8-8 8H38c-4.4 0-8-3.6-8-8V35Z" fill="url(#mark-gradient)" />
+  <path d="M45 43h13v35h18v11H45V43Zm35 0h13v46H80V43Z" fill="#07111f" />
+  <path d="M43 41h13v35h18v11H43V41Zm35 0h13v46H78V41Z" fill="#ffffff" fill-opacity="0.95" />
+</svg>
