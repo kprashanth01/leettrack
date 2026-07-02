@@ -97,6 +97,13 @@ class LeetCodeSubmissionRepository:
             for problem, submission in rows
         ]
 
+    def get_latest_account_for_user(self, user_id: str) -> LeetCodeAccount | None:
+        return self._db.scalar(
+            select(LeetCodeAccount)
+            .where(LeetCodeAccount.user_id == user_id)
+            .order_by(LeetCodeAccount.last_synced_at.desc(), LeetCodeAccount.id.desc())
+        )
+
     def _get_or_create_account(self, user_id: str, username: str) -> LeetCodeAccount:
         account = self._db.scalar(
             select(LeetCodeAccount).where(
@@ -485,6 +492,10 @@ class EmailDeliveryAttemptRepository:
         period_end: datetime,
         provider_message_id: str | None = None,
         error_message: str | None = None,
+        sync_status: str | None = None,
+        sync_fetched_count: int | None = None,
+        sync_saved_count: int | None = None,
+        sync_error_message: str | None = None,
     ) -> EmailDeliveryAttempt:
         attempt = EmailDeliveryAttempt(
             user_id=user_id,
@@ -495,6 +506,10 @@ class EmailDeliveryAttemptRepository:
             period_end=period_end,
             provider_message_id=provider_message_id,
             error_message=error_message,
+            sync_status=sync_status,
+            sync_fetched_count=sync_fetched_count,
+            sync_saved_count=sync_saved_count,
+            sync_error_message=sync_error_message,
         )
         self._db.add(attempt)
         self._db.commit()

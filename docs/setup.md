@@ -117,7 +117,7 @@ Include this header:
 X-LeetTrack-Scheduler-Secret: [SCHEDULER_SECRET]
 ```
 
-The dispatcher sends only to users who enabled weekly summaries in the app. It records delivery attempts and skips users who already received the automated summary for the current UTC week.
+The dispatcher sends only to users who enabled weekly summaries in the app. Before sending, it uses the user's saved LeetCode username to sync the latest public accepted submissions, then builds the email from the refreshed database state. It records delivery attempts, sync outcomes, and skips users who already received the automated summary for the current UTC week.
 
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
 

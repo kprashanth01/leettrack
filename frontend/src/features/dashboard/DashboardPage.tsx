@@ -2,22 +2,12 @@ import { lazy, Suspense } from "react";
 
 import { useWorkspaceData } from "../workspace/WorkspaceDataContext";
 
-import LeetCodeSyncPanel from "./LeetCodeSyncPanel";
 import RecentProblemsTable from "./RecentProblemsTable";
-import WeeklyEmailPanel from "./WeeklyEmailPanel";
 
 const AnalyticsDashboard = lazy(() => import("../analytics/AnalyticsDashboard"));
 
 function DashboardPage() {
-  const {
-    username,
-    submissions,
-    isLoading,
-    statusMessage,
-    errorMessage,
-    loadSubmissions,
-    syncSubmissions,
-  } = useWorkspaceData();
+  const { submissions } = useWorkspaceData();
 
   return (
     <div className="dashboard" id="dashboard">
@@ -32,12 +22,10 @@ function DashboardPage() {
         </div>
 
         <aside className="focus-card" aria-label="Sync status">
-          <p>Tracked account</p>
-          <strong>{username || "Not set"}</strong>
+          <p>Practice snapshot</p>
+          <strong>{submissions.length} solved records</strong>
           <span>
-            {username
-              ? `${submissions.length} saved submissions loaded.`
-              : "Enter a username to load persisted submissions."}
+            Analytics are generated from your saved LeetCode submissions.
           </span>
         </aside>
       </header>
@@ -51,17 +39,6 @@ function DashboardPage() {
       >
         <AnalyticsDashboard submissions={submissions} />
       </Suspense>
-
-      <LeetCodeSyncPanel
-        initialUsername={username}
-        isLoading={isLoading}
-        statusMessage={statusMessage}
-        errorMessage={errorMessage}
-        onLoadSubmissions={loadSubmissions}
-        onSyncSubmissions={syncSubmissions}
-      />
-
-      <WeeklyEmailPanel disabled={submissions.length === 0} />
 
       <RecentProblemsTable submissions={submissions} />
     </div>

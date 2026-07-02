@@ -27,7 +27,7 @@ The current backend milestone includes:
 - a `POST /leetcode/sync` endpoint that fetches and persists recent accepted LeetCode submissions;
 - a `GET /leetcode/submissions` endpoint used by the dashboard to display persisted submissions;
 - manual weekly summary email sending through Resend;
-- cron-safe weekly summary dispatch for opted-in users;
+- cron-safe weekly summary dispatch for opted-in users that refreshes saved LeetCode data before sending;
 - Alembic-managed tables for LeetCode accounts, problems, and submissions;
 - documentation for setup and workflow.
 
@@ -55,9 +55,9 @@ Database schema changes go through Alembic migrations. We do not modify producti
 
 `email_preferences` stores per-user email settings such as whether weekly summary automation is enabled. Manual sends remain explicit user actions.
 
-`email_delivery_attempts` stores automated email delivery audit records, including the weekly period, recipient, status, provider message id, and failure reason when available. This prevents duplicate automated weekly sends and gives us a production debugging trail.
+`email_delivery_attempts` stores automated email delivery audit records, including the weekly period, recipient, status, provider message id, sync status, sync counts, and failure reason when available. This prevents duplicate automated weekly sends and gives us a production debugging trail.
 
-The frontend dashboard reads from the backend API instead of product-facing mock data. Test fixtures and fake clients remain acceptable inside automated tests.
+The frontend dashboard reads from the backend API instead of product-facing mock data. Dashboard views focus on analytics and progress inspection, while account-level controls such as LeetCode sync and email preferences live in Settings. Test fixtures and fake clients remain acceptable inside automated tests.
 
 ## Why This Structure
 
