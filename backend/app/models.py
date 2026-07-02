@@ -1,6 +1,16 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, JSON, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -175,4 +185,8 @@ class EmailDeliveryAttempt(Base):
     period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     provider_message_id: Mapped[str | None] = mapped_column(String(255))
     error_message: Mapped[str | None] = mapped_column(Text)
+    sync_status: Mapped[str | None] = mapped_column(String(30))
+    sync_fetched_count: Mapped[int | None] = mapped_column(Integer)
+    sync_saved_count: Mapped[int | None] = mapped_column(Integer)
+    sync_error_message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

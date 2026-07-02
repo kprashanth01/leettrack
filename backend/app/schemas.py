@@ -193,3 +193,6 @@ class WeeklySummaryDispatchResponse(BaseModel):
     sent_count: int
     skipped_count: int
     failed_count: int
+    synced_count: int
+    sync_failed_count: int
+    sync_skipped_count: int

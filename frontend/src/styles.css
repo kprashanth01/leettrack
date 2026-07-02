@@ -413,6 +413,11 @@ h1 {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.8fr);
 }
 
+.settings-grid {
+  display: grid;
+  gap: 22px;
+}
+
 .dashboard-section {
   min-width: 0;
   overflow: hidden;
@@ -949,7 +954,7 @@ tbody tr:last-child td {
   }
 
   .nav-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .nav-link {

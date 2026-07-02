@@ -15,10 +15,12 @@ from app.email_service import (
     EmailDeliveryError,
     ResendEmailSender,
 )
+from app.leetcode_client import LeetCodeClientError
 from app.models import LeetCodeAccount, Problem, ProblemNote, Submission
 from app.repositories import (
     EmailDeliveryAttemptRepository,
     EmailPreferenceRepository,
+    LeetCodeSubmissionRepository,
     ensure_utc,
 )
 from app.schemas import (
@@ -27,12 +29,17 @@ from app.schemas import (
     WeeklySummaryDispatchResponse,
     WeeklySummaryEmailResponse,
 )
+from app.services import LeetCodeSyncService
 
 router = APIRouter(prefix="/emails", tags=["emails"])
 
 
 def get_email_sender() -> ResendEmailSender:
     return ResendEmailSender()
+
+
+def get_leetcode_sync_service(db: Session = Depends(get_db)) -> LeetCodeSyncService:
+    return LeetCodeSyncService(repository=LeetCodeSubmissionRepository(db))
 
 
 class WeeklySummaryBuilder:
@@ -353,16 +360,21 @@ def dispatch_weekly_summary_emails(
     ),
     db: Session = Depends(get_db),
     email_sender: ResendEmailSender = Depends(get_email_sender),
+    sync_service: LeetCodeSyncService = Depends(get_leetcode_sync_service),
 ) -> WeeklySummaryDispatchResponse:
     _verify_scheduler_secret(scheduler_secret)
     period_start, period_end = _weekly_period()
     preference_repository = EmailPreferenceRepository(db)
     attempt_repository = EmailDeliveryAttemptRepository(db)
+    submission_repository = LeetCodeSubmissionRepository(db)
     recipients = preference_repository.list_weekly_summary_recipients()
 
     sent_count = 0
     skipped_count = 0
     failed_count = 0
+    synced_count = 0
+    sync_failed_count = 0
+    sync_skipped_count = 0
     builder = WeeklySummaryBuilder(db)
 
     for preference in recipients:
@@ -387,6 +399,32 @@ def dispatch_weekly_summary_emails(
             skipped_count += 1
             continue
 
+        sync_status = "skipped"
+        sync_fetched_count = None
+        sync_saved_count = None
+        sync_error_message = None
+        account = submission_repository.get_latest_account_for_user(
+            user_id=preference.user_id,
+        )
+        if account is None:
+            sync_skipped_count += 1
+            sync_error_message = "No saved LeetCode account to sync."
+        else:
+            try:
+                sync_result = sync_service.sync_recent_accepted_submissions(
+                    user_id=preference.user_id,
+                    username=account.username,
+                    limit=50,
+                )
+                sync_status = "completed"
+                sync_fetched_count = sync_result.fetched_count
+                sync_saved_count = sync_result.saved_count
+                synced_count += 1
+            except LeetCodeClientError as exc:
+                sync_status = "failed"
+                sync_error_message = str(exc)
+                sync_failed_count += 1
+
         html = builder.build_html(user_id=preference.user_id)
         try:
             email_id = email_sender.send_email(
@@ -403,6 +441,10 @@ def dispatch_weekly_summary_emails(
                 period_start=period_start,
                 period_end=period_end,
                 error_message=str(exc),
+                sync_status=sync_status,
+                sync_fetched_count=sync_fetched_count,
+                sync_saved_count=sync_saved_count,
+                sync_error_message=sync_error_message,
             )
             failed_count += 1
             continue
@@ -415,6 +457,10 @@ def dispatch_weekly_summary_emails(
             period_start=period_start,
             period_end=period_end,
             provider_message_id=email_id,
+            sync_status=sync_status,
+            sync_fetched_count=sync_fetched_count,
+            sync_saved_count=sync_saved_count,
+            sync_error_message=sync_error_message,
         )
         sent_count += 1
 
@@ -423,6 +469,9 @@ def dispatch_weekly_summary_emails(
         sent_count=sent_count,
         skipped_count=skipped_count,
         failed_count=failed_count,
+        synced_count=synced_count,
+        sync_failed_count=sync_failed_count,
+        sync_skipped_count=sync_skipped_count,
     )
 
 

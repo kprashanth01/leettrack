@@ -6,6 +6,7 @@ import DashboardPage from "./features/dashboard/DashboardPage";
 import NotesPage from "./features/notes/NotesPage";
 import ProblemsPage from "./features/problems/ProblemsPage";
 import ReviewPage from "./features/review/ReviewPage";
+import SettingsPage from "./features/settings/SettingsPage";
 import { WorkspaceDataProvider } from "./features/workspace/WorkspaceDataContext";
 import { useAuth } from "./auth/AuthContext";
 
@@ -45,6 +46,7 @@ function App() {
           <Route element={<ProblemsPage />} path="/problems" />
           <Route element={<NotesPage />} path="/notes" />
           <Route element={<ReviewPage />} path="/review" />
+          <Route element={<SettingsPage />} path="/settings" />
           <Route element={<Navigate replace to="/dashboard" />} path="*" />
         </Routes>
       </AppShell>

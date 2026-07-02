@@ -7,6 +7,7 @@ const navigationItems = [
   { label: "Problems", path: "/problems" },
   { label: "Notes", path: "/notes" },
   { label: "Review", path: "/review" },
+  { label: "Settings", path: "/settings" },
 ];
 
 function Sidebar() {

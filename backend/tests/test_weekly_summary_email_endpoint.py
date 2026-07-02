@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.auth import CurrentUser, get_current_user
 from app.database import get_db
+from app.leetcode_client import LeetCodeClientError
 from app.main import app
 from app.models import Base, EmailDeliveryAttempt
 from app.repositories import (
@@ -14,8 +15,8 @@ from app.repositories import (
     LeetCodeSubmissionRepository,
     ProblemNoteRepository,
 )
-from app.routes.emails import get_email_sender
-from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission
+from app.routes.emails import get_email_sender, get_leetcode_sync_service
+from app.schemas import LeetCodeProblemMetadata, LeetCodeSubmission, LeetCodeSyncResult
 
 
 class FakeEmailSender:
@@ -31,6 +32,47 @@ class FakeEmailSender:
             }
         )
         return "email_test_123"
+
+
+class FakeLeetCodeSyncService:
+    def __init__(
+        self,
+        session: Session,
+        submissions: list[LeetCodeSubmission] | None = None,
+        should_fail: bool = False,
+    ) -> None:
+        self._session = session
+        self._submissions = submissions or []
+        self._should_fail = should_fail
+        self.calls: list[dict[str, object]] = []
+
+    def sync_recent_accepted_submissions(
+        self,
+        user_id: str,
+        username: str,
+        limit: int,
+    ) -> LeetCodeSyncResult:
+        self.calls.append(
+            {
+                "user_id": user_id,
+                "username": username,
+                "limit": limit,
+            }
+        )
+        if self._should_fail:
+            raise LeetCodeClientError("LeetCode unavailable")
+
+        saved_count = LeetCodeSubmissionRepository(self._session).save_sync_result(
+            user_id=user_id,
+            username=username,
+            submissions=self._submissions,
+        )
+        return LeetCodeSyncResult(
+            username=username,
+            fetched_count=len(self._submissions),
+            saved_count=saved_count,
+            submissions=[],
+        )
 
 
 def override_db_session(session: Session):
@@ -306,6 +348,86 @@ def test_weekly_summary_dispatch_sends_to_opted_in_users(monkeypatch) -> None:
     assert attempts[0].user_id == "user-1"
     assert attempts[0].status == "sent"
     assert attempts[0].provider_message_id == "email_test_123"
+
+
+def test_weekly_summary_dispatch_syncs_before_sending_email(monkeypatch) -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    opt_in_user(session, user_id="user-1", recipient_email="user@example.com")
+    fake_sender = FakeEmailSender()
+    fake_sync = FakeLeetCodeSyncService(
+        session=session,
+        submissions=[
+            LeetCodeSubmission(
+                title="Fresh Weekly Problem",
+                slug="fresh-weekly-problem",
+                language="python3",
+                submitted_at=datetime(2026, 7, 2, 16, 0, tzinfo=timezone.utc),
+            )
+        ],
+    )
+    monkeypatch.setenv("SCHEDULER_SECRET", "scheduler-secret")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+    app.dependency_overrides[get_leetcode_sync_service] = lambda: fake_sync
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/emails/weekly-summary/dispatch",
+            headers={"X-LeetTrack-Scheduler-Secret": "scheduler-secret"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert response.json()["sent_count"] == 1
+    assert response.json()["synced_count"] == 1
+    assert response.json()["sync_failed_count"] == 0
+    assert fake_sync.calls == [
+        {
+            "user_id": "user-1",
+            "username": "kprashanth01",
+            "limit": 50,
+        }
+    ]
+    assert "Fresh Weekly Problem" in fake_sender.sent_messages[0]["html"]
+    attempts = session.query(EmailDeliveryAttempt).all()
+    assert attempts[0].sync_status == "completed"
+    assert attempts[0].sync_saved_count == 1
+
+
+def test_weekly_summary_dispatch_records_sync_failure_without_stopping_email(
+    monkeypatch,
+) -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    opt_in_user(session, user_id="user-1", recipient_email="user@example.com")
+    fake_sender = FakeEmailSender()
+    fake_sync = FakeLeetCodeSyncService(session=session, should_fail=True)
+    monkeypatch.setenv("SCHEDULER_SECRET", "scheduler-secret")
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+    app.dependency_overrides[get_leetcode_sync_service] = lambda: fake_sync
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/emails/weekly-summary/dispatch",
+            headers={"X-LeetTrack-Scheduler-Secret": "scheduler-secret"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert response.json()["sent_count"] == 1
+    assert response.json()["synced_count"] == 0
+    assert response.json()["sync_failed_count"] == 1
+    assert len(fake_sender.sent_messages) == 1
+    attempts = session.query(EmailDeliveryAttempt).all()
+    assert attempts[0].status == "sent"
+    assert attempts[0].sync_status == "failed"
+    assert attempts[0].sync_error_message == "LeetCode unavailable"
 
 
 def test_weekly_summary_dispatch_skips_opted_out_users(monkeypatch) -> None:
