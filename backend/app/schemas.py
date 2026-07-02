@@ -177,3 +177,12 @@ class WeeklySummaryEmailResponse(BaseModel):
     status: Literal["sent"]
     email_id: str
     recipient: str
+
+
+class EmailPreferencesResponse(BaseModel):
+    weekly_summary_enabled: bool
+    recipient: str
+
+
+class EmailPreferencesUpdate(BaseModel):
+    weekly_summary_enabled: bool

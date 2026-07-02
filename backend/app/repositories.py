@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    EmailPreference,
     LeetCodeAccount,
     Problem,
     ProblemNote,
@@ -390,3 +391,36 @@ class TrackedProblemRepository:
             source="extension",
             created_at=ensure_utc(tracked_problem.created_at),
         )
+
+
+class EmailPreferenceRepository:
+    def __init__(self, db: Session) -> None:
+        self._db = db
+
+    def get_or_create(self, user_id: str) -> EmailPreference:
+        preference = self._db.scalar(
+            select(EmailPreference).where(EmailPreference.user_id == user_id)
+        )
+        if preference is not None:
+            return preference
+
+        preference = EmailPreference(
+            user_id=user_id,
+            weekly_summary_enabled=False,
+        )
+        self._db.add(preference)
+        self._db.commit()
+        self._db.refresh(preference)
+        return preference
+
+    def update_weekly_summary(
+        self,
+        user_id: str,
+        weekly_summary_enabled: bool,
+    ) -> EmailPreference:
+        preference = self.get_or_create(user_id=user_id)
+        preference.weekly_summary_enabled = weekly_summary_enabled
+        preference.updated_at = datetime.now(timezone.utc)
+        self._db.commit()
+        self._db.refresh(preference)
+        return preference

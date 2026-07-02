@@ -111,9 +111,34 @@ def test_weekly_summary_email_sends_to_authenticated_user() -> None:
     sent_message = fake_sender.sent_messages[0]
     assert sent_message["to_email"] == "user@example.com"
     assert sent_message["subject"] == "Your LeetTrack weekly summary"
+    assert "LeetTrack Weekly Report" in sent_message["html"]
+    assert "Recommended focus" in sent_message["html"]
     assert "2 accepted submissions" in sent_message["html"]
     assert "Two Sum" in sent_message["html"]
     assert "Remember complement lookup." in sent_message["html"]
+
+
+def test_weekly_summary_email_uses_email_client_safe_layout() -> None:
+    session = create_test_session()
+    seed_user_activity(session)
+    fake_sender = FakeEmailSender()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+    app.dependency_overrides[get_email_sender] = lambda: fake_sender
+
+    try:
+        client = TestClient(app)
+        response = client.post("/emails/weekly-summary")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    html = fake_sender.sent_messages[0]["html"]
+    assert "role=\"presentation\"" in html
+    assert "display:grid" not in html
 
 
 def test_weekly_summary_email_does_not_include_other_users_data() -> None:
@@ -155,3 +180,79 @@ def test_weekly_summary_email_requires_authentication() -> None:
     response = client.post("/emails/weekly-summary")
 
     assert response.status_code == 401
+
+
+def test_email_preferences_default_to_weekly_disabled() -> None:
+    session = create_test_session()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.get("/emails/preferences")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "weekly_summary_enabled": False,
+        "recipient": "user@example.com",
+    }
+
+
+def test_email_preferences_can_be_updated_by_authenticated_user() -> None:
+    session = create_test_session()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+
+    try:
+        client = TestClient(app)
+        update_response = client.patch(
+            "/emails/preferences",
+            json={"weekly_summary_enabled": True},
+        )
+        get_response = client.get("/emails/preferences")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert update_response.status_code == 200
+    assert update_response.json() == {
+        "weekly_summary_enabled": True,
+        "recipient": "user@example.com",
+    }
+    assert get_response.json()["weekly_summary_enabled"] is True
+
+
+def test_email_preferences_are_scoped_to_authenticated_user() -> None:
+    session = create_test_session()
+    app.dependency_overrides[get_db] = override_db_session(session)
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        id="user-1",
+        email="user@example.com",
+    )
+
+    try:
+        client = TestClient(app)
+        client.patch(
+            "/emails/preferences",
+            json={"weekly_summary_enabled": True},
+        )
+        app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+            id="user-2",
+            email="other@example.com",
+        )
+        other_user_response = client.get("/emails/preferences")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert other_user_response.status_code == 200
+    assert other_user_response.json() == {
+        "weekly_summary_enabled": False,
+        "recipient": "other@example.com",
+    }

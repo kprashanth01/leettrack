@@ -10,9 +10,19 @@ type WeeklySummaryEmailResponse = {
   recipient: string;
 };
 
+type EmailPreferencesResponse = {
+  weekly_summary_enabled: boolean;
+  recipient: string;
+};
+
 export type WeeklySummaryEmailResult = {
   status: "sent";
   emailId: string;
+  recipient: string;
+};
+
+export type EmailPreferences = {
+  weeklySummaryEnabled: boolean;
   recipient: string;
 };
 
@@ -55,6 +65,47 @@ export async function sendWeeklySummaryEmail(): Promise<WeeklySummaryEmailResult
   return {
     status: body.status,
     emailId: body.email_id,
+    recipient: body.recipient,
+  };
+}
+
+export async function fetchEmailPreferences(): Promise<EmailPreferences> {
+  const response = await fetch(`${API_BASE_URL}/emails/preferences`, {
+    headers: await getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as EmailPreferencesResponse;
+  return {
+    weeklySummaryEnabled: body.weekly_summary_enabled,
+    recipient: body.recipient,
+  };
+}
+
+export async function updateEmailPreferences(
+  weeklySummaryEnabled: boolean,
+): Promise<EmailPreferences> {
+  const response = await fetch(`${API_BASE_URL}/emails/preferences`, {
+    method: "PATCH",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      weekly_summary_enabled: weeklySummaryEnabled,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as EmailPreferencesResponse;
+  return {
+    weeklySummaryEnabled: body.weekly_summary_enabled,
     recipient: body.recipient,
   };
 }

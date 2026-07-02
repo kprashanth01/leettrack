@@ -9,7 +9,7 @@ flowchart LR
   Frontend --> Backend["backend/ FastAPI"]
   Backend --> LeetCode["LeetCode GraphQL"]
   Backend --> Database["PostgreSQL via SQLAlchemy/Alembic"]
-  Backend --> FutureEmail["Future: Resend"]
+  Backend --> Email["Resend"]
   Backend --> FutureAI["Future: AI coaching services"]
 
   Extension["Future: Browser Extension"] --> Backend
@@ -25,6 +25,7 @@ The current backend milestone includes:
 - a `/health` endpoint;
 - a `POST /leetcode/sync` endpoint that fetches and persists recent accepted LeetCode submissions;
 - a `GET /leetcode/submissions` endpoint used by the dashboard to display persisted submissions;
+- manual weekly summary email sending through Resend;
 - Alembic-managed tables for LeetCode accounts, problems, and submissions;
 - documentation for setup and workflow.
 
@@ -45,6 +46,12 @@ Database schema changes go through Alembic migrations. We do not modify producti
 `problems` stores platform-level problem identity such as `leetcode/two-sum`.
 
 `submissions` links an account to a problem at a specific submission time. A unique constraint on account, problem, and submitted timestamp prevents duplicate rows when sync is run repeatedly.
+
+`problem_notes` stores user-authored notes attached to synced or tracked problems.
+
+`tracked_problems` stores user-saved LeetCode problems detected by the browser extension before they are counted as solved submissions.
+
+`email_preferences` stores per-user email settings such as whether weekly summary automation is enabled. Manual sends remain explicit user actions.
 
 The frontend dashboard reads from the backend API instead of product-facing mock data. Test fixtures and fake clients remain acceptable inside automated tests.
 
