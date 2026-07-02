@@ -67,4 +67,5 @@ Each feature should follow this sequence:
 
 - `docs/architecture.md` explains the high-level system boundaries.
 - `docs/setup.md` explains local setup.
+- `docs/deployment.md` explains the production deployment checklist.
 - `docs/development-workflow.md` explains how changes should move from idea to merge.

@@ -2,6 +2,8 @@
 
 This guide explains how to run the LeetTrack foundation locally.
 
+For production deployment, use `docs/deployment.md`.
+
 ## Prerequisites
 
 - Node.js for the frontend.
@@ -50,7 +52,7 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Edit `backend/.env` and set the `SUPABASE_DB_*` values from your Supabase Postgres connection details before running migrations against Supabase.
+Edit `backend/.env` and set either `DATABASE_URL` or the `SUPABASE_DB_*` values from your Supabase Postgres connection details before running migrations against Supabase.
 
 Health check:
 
@@ -120,6 +122,8 @@ X-LeetTrack-Scheduler-Secret: [SCHEDULER_SECRET]
 The dispatcher sends only to users who enabled weekly summaries in the app. Before sending, it uses the user's saved LeetCode username to sync the latest public accepted submissions, then builds the email from the refreshed database state. It records delivery attempts, sync outcomes, and skips users who already received the automated summary for the current UTC week.
 
 If `DATABASE_URL` is not set, the backend uses a local SQLite file named `leettrack.db` for development.
+
+Set `APP_ENV=production` only in deployed environments. In production mode, the backend validates required database, Supabase Auth, CORS, Resend, and scheduler environment variables during startup.
 
 Run backend tests from the `backend/` directory:
 
