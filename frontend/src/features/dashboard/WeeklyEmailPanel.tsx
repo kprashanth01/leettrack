@@ -1,15 +1,86 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { sendWeeklySummaryEmail } from "../../api/emails";
+import {
+  fetchEmailPreferences,
+  sendWeeklySummaryEmail,
+  updateEmailPreferences,
+  type EmailPreferences,
+} from "../../api/emails";
 
 type WeeklyEmailPanelProps = {
   disabled: boolean;
 };
 
 function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
+  const [preferences, setPreferences] = useState<EmailPreferences | null>(null);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPreferences = async () => {
+      setIsLoadingPreferences(true);
+      setErrorMessage("");
+
+      try {
+        const loadedPreferences = await fetchEmailPreferences();
+        if (isMounted) {
+          setPreferences(loadedPreferences);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not load email preferences.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPreferences(false);
+        }
+      }
+    };
+
+    void loadPreferences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handlePreferenceChange = async () => {
+    if (!preferences || isSavingPreferences) {
+      return;
+    }
+
+    const nextValue = !preferences.weeklySummaryEnabled;
+    setIsSavingPreferences(true);
+    setStatusMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedPreferences = await updateEmailPreferences(nextValue);
+      setPreferences(updatedPreferences);
+      setStatusMessage(
+        updatedPreferences.weeklySummaryEnabled
+          ? "Weekly summaries enabled for future scheduled emails."
+          : "Weekly summaries disabled for future scheduled emails.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update email preferences.",
+      );
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
 
   const handleSendSummary = async () => {
     setIsSending(true);
@@ -39,9 +110,40 @@ function WeeklyEmailPanel({ disabled }: WeeklyEmailPanelProps) {
 
       <div className="email-summary-panel">
         <p className="email-summary-copy">
-          Email yourself a snapshot of solved volume, active days, topic
-          coverage, difficulty mix, recent solves, and recent notes.
+          Email yourself a polished snapshot of solved volume, active days,
+          streaks, difficulty mix, topic coverage, recent solves, notes, and a
+          recommended focus area.
         </p>
+        <div className="email-preference-card">
+          <div>
+            <p className="email-preference-label">Weekly automation preference</p>
+            <strong>
+              {preferences?.weeklySummaryEnabled
+                ? "Scheduled summaries are on"
+                : "Scheduled summaries are off"}
+            </strong>
+            <span>
+              {isLoadingPreferences
+                ? "Loading your email preference..."
+                : `Recipient: ${preferences?.recipient ?? "your account email"}`}
+            </span>
+          </div>
+          <button
+            aria-pressed={preferences?.weeklySummaryEnabled ?? false}
+            className="email-toggle"
+            disabled={!preferences || isLoadingPreferences || isSavingPreferences}
+            onClick={handlePreferenceChange}
+            type="button"
+          >
+            <span />
+            {isSavingPreferences
+              ? "Saving"
+              : preferences?.weeklySummaryEnabled
+                ? "On"
+                : "Off"}
+          </button>
+        </div>
+
         <button
           className="primary-action"
           disabled={disabled || isSending}
